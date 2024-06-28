@@ -1,5 +1,8 @@
 import cron from 'node-cron';
 import { readPox4Events } from '../pox4/pox-events/pox4_events_helper';
+import { getProposalFromContractId, getProposalsFromContractIds } from '../dao/dao_helper';
+import { fetchTentativeProposals } from '../../lib/data/db_models';
+import { TentativeProposal } from '@mijoco/stx_helpers';
 
 export const pox4EventsJob = cron.schedule('*/20 * * * *', (fireDate) => {
   try {
@@ -9,3 +12,20 @@ export const pox4EventsJob = cron.schedule('*/20 * * * *', (fireDate) => {
     console.log('Error running: readDaoVotesJob: ', err);
   }
 });
+
+
+export const initDaoProposalsJob = cron.schedule('* * * * *', async (fireDate) =>  {
+  console.log('Running: initDaoProposalsJob at: ' + fireDate);
+  try {
+    const tProps:Array<TentativeProposal> = await fetchTentativeProposals()
+    if (!tProps || tProps.length === 0) return
+    for (const tProp of tProps) {
+      const res = await getProposalFromContractId(tProp);
+      // if (res) delete the tentaive one ?
+    }
+  } catch (err) {
+    console.log('Error running: initDaoProposalsJob: ', err);
+  }
+});
+
+

@@ -5,10 +5,10 @@ import { stringAsciiCV, cvToJSON, deserializeCV, contractPrincipalCV, serializeC
 import { hex } from '@scure/base';
 import { getConfig } from '../../lib/config';
 import DaoUtils from './DaoUtils';
-import { saveOrUpdateProposal } from '../../lib/data/db_models';
+import { fetchTentativeProposals, saveOrUpdateProposal } from '../../lib/data/db_models';
 import { getDaoConfig } from '../../lib/config_dao';
 import { countsVotesByMethod, countsVotesByProposalAndMethod, saveOrUpdateVote } from './vote_count_helper';
-import { FundingData, GovernanceData, NFTHolding, NFTHoldings, ProposalContract, ProposalData, ProposalEvent, ProposalStage, SignalData, SubmissionData, VoteEvent, callContractReadOnly, fetchDataVar } from '@mijoco/stx_helpers/dist/index';
+import { FundingData, GovernanceData, NFTHolding, NFTHoldings, ProposalContract, ProposalData, ProposalEvent, ProposalStage, SignalData, SubmissionData, TentativeProposal, VoteEvent, callContractReadOnly, fetchDataVar } from '@mijoco/stx_helpers/dist/index';
 
 let uris:any = {};
 const gateway = "https://hashone.mypinata.cloud/";
@@ -189,13 +189,6 @@ export async function getProposalsByTrait() {
   return edaoProposals;
 }
 
-export async function getProposalsForActiveVotingExts():Promise<any> {
-  const activeVotingContracts = getDaoConfig().VITE_DOA_DEPLOYER + '.' + getDaoConfig().VITE_DOA_FUNDED_SUBMISSION_EXTENSION
-  for (const votingContractId of activeVotingContracts) {
-    await getProposalsForActiveVotingExt(votingContractId.trim())
-  }
-}
-
 export async function getProposalsForActiveVotingExt(votingContractId:string) {
   const url = getConfig().stacksApi + '/extended/v1/contract/' + votingContractId + '/events?limit=' + 20;
   const proposals: Array<ProposalEvent> = [];
@@ -222,7 +215,7 @@ export async function getProposalsForActiveVotingExt(votingContractId:string) {
   return proposals;
 }
 
-export async function innerProposalsForActiveVotingExt(url:string, currentOffset:number, currentCount:number, votingContractId:string):Promise<any> {
+async function innerProposalsForActiveVotingExt(url:string, currentOffset:number, currentCount:number, votingContractId:string):Promise<any> {
   let urlOffset = url + '&offset=' + (currentOffset + (currentCount * 20))
   const response = await fetch(urlOffset);
   const val = await response.json();
@@ -278,27 +271,35 @@ export async function innerProposalsForActiveVotingExt(url:string, currentOffset
   return val.results?.length > 0 || false
 }
 
-export async function getProposalsFromContractIds(submissionContractId:string, proposalContractIds:string):Promise<any> {
+export async function getProposalsFromContractIds(proposalContractIds:string):Promise<any> {
+  const tProps:Array<TentativeProposal> = await fetchTentativeProposals()
   const proposalCids = proposalContractIds.split(',')
   const props = []
-  for (const proposalCid of proposalCids) {
-    const p = await getProposalFromContractId(submissionContractId, proposalCid.trim())
+  for (const tProp of tProps) {
+    const p = await getProposalFromContractId(tProp)
     props.push(p)
   }
   return props
 }
 
-export async function getProposalFromContractId(submissionContractId:string, proposalContractId:string):Promise<ProposalEvent|undefined> {
+export async function getProposalFromContractId(tProp:TentativeProposal):Promise<ProposalEvent|undefined> {
   let proposal:ProposalEvent|undefined = undefined;
   try {
+    const proposalContractId = tProp.tag
     console.log('getProposalData: proposalContractId: ' + proposalContractId)
-    const contract = await getProposalContract(proposalContractId)
+    let contract;
+    try {
+      contract = await getProposalContract(proposalContractId)
+      if (!contract) return;
+    } catch(err:any) {
+      return;
+    }
     let proposalMeta;
     let funding;
     let signals;
     let stage = ProposalStage.PARTIAL_FUNDING;
     try {
-      funding = await getFunding(submissionContractId, proposalContractId);
+      funding = await getFunding(tProp.submissionExtension, proposalContractId);
       if (funding.funding === 0) stage = ProposalStage.UNFUNDED
       //signals = await getSignals(proposalContractId)
       proposalMeta = DaoUtils.getMetaData(contract.source)
@@ -310,13 +311,12 @@ export async function getProposalFromContractId(submissionContractId:string, pro
       proposalData = await getProposalData(proposalContractId)
     } catch (err:any) { 
       console.log('getProposalFromContractId: proposalData1: ' + err.message)
-
     }
     const p = {
       contract,
       proposalMeta,
       contractId: proposalContractId,
-      submissionData: { contractId: submissionContractId, transaction: undefined },
+      submissionData: { contractId: tProp.submissionExtension, transaction: undefined },
       signals,
       stage,
       funding

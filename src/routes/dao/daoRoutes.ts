@@ -1,5 +1,5 @@
 import express from "express";
-import { getDaoMongoConfig, getProposals, saveOrUpdateDaoMongoConfig } from "../../lib/data/db_models";
+import { findTentativeProposalByContractId, getDaoMongoConfig, getProposals, saveOrUpdateDaoMongoConfig } from "../../lib/data/db_models";
 import { getAssetClasses, getBalanceAtHeight, getFunding, getGovernanceData, getNftHoldings, getProposalFromContractId, getProposalsForActiveVotingExt, getProposalsFromContractIds, getStacksInfo, isExecutiveTeamMember, isExtension } from "./dao_helper";
 import { poolStackerAddresses, soloStackerAddresses } from "./solo_pool_addresses";
 import { findProposalVotesByProposal, findVotesByProposalAndMethod, findVotesByProposalAndVoter, findVotesByVoter, getSummary  } from "./vote_count_helper";
@@ -8,8 +8,53 @@ import { getPoolTransactions, getPoolTxs, reconcilePoolTxs, reconcilePoolTxsByBa
 import { fetchAddressTransactions } from "@mijoco/btc_helpers/dist/index";
 import { getConfig } from "../../lib/config";
 import { getDaoConfig } from "../../lib/config_dao";
+import { TentativeProposal } from "@mijoco/stx_helpers";
 
 const router = express.Router();
+
+router.get("/new-proposal/:start/:end/:submissionExtension/:proposalContractId", async (req, res, next) => {
+  try {
+    const tProp:TentativeProposal = {
+      tag: req.params.proposalContractId,
+      submissionExtension: req.params.proposalContractId,
+      expectedStart: Number(req.params.start),
+      expectedEnd: Number(req.params.end),
+      proposalMeta: {
+        dao: 'bitcoin-dao',
+        author: 'unknown',
+        description: 'unknown',
+        synopsis: 'unknown',
+        title: 'unknown'
+      }
+    }
+    const result = getProposalFromContractId(tProp);
+    return res.send(result);
+  } catch (error) {
+    console.log('Error in routes: ', error)
+    next('An error occurred fetching pox-info.')
+  }
+});
+
+router.get("/get-proposal-from-contract-id/:proposalContractId", async (req, res, next) => {
+  try {
+    const tProp:TentativeProposal = await findTentativeProposalByContractId(req.params.proposalContractId)
+    const result = getProposalFromContractId(tProp);
+    return res.send(result);
+  } catch (error) {
+    console.log('Error in routes: ', error)
+    next('An error occurred fetching pox-info.')
+  }
+});
+
+router.get("/sync/proposal/:contractIds", async (req, res, next) => {
+  try {
+    const props = await getProposalsFromContractIds(req.params.contractIds);
+    return res.send(props);
+  } catch (error) {
+    console.log('Error in routes: ', error)
+    next('An error occurred fetching sbtc data.')
+  }
+});
 
 router.get("/is-executive-team-member/:stacksAddress", async (req, res, next) => {
   return false
@@ -25,16 +70,6 @@ router.get("/is-executive-team-member/:stacksAddress", async (req, res, next) =>
 router.get("/get-governance-data/:stacksAddress", async (req, res, next) => {
   try {
     const result = getGovernanceData(req.params.stacksAddress);
-    return res.send(result);
-  } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching pox-info.')
-  }
-});
-
-router.get("/get-proposal-from-contract-id/:submissionContractId/:proposalContractId", async (req, res, next) => {
-  try {
-    const result = getProposalFromContractId(req.params.submissionContractId, req.params.proposalContractId);
     return res.send(result);
   } catch (error) {
     console.log('Error in routes: ', error)
@@ -418,18 +453,6 @@ router.get("/sync/results/non-stackers", async (req, res, next) => {
   try {
     getProposalsForActiveVotingExt(getDaoConfig().VITE_DOA_DEPLOYER + '.' + getDaoConfig().VITE_DOA_SNAPSHOT_VOTING_EXTENSION);
     return res.send({result: 'syncing dao data'});
-  } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching sbtc data.')
-  }
-});
-
-router.get("/sync/proposal/:contractIds", async (req, res, next) => {
-  try {
-    const submissionContractId = getDaoConfig().VITE_DOA_DEPLOYER + '.' + getDaoConfig().VITE_DOA_FUNDED_SUBMISSION_EXTENSION
-    console.log('Running: sync: proposals: ' + req.params.contractIds);
-    const props = await getProposalsFromContractIds(submissionContractId, req.params.contractIds);
-    return res.send(props);
   } catch (error) {
     console.log('Error in routes: ', error)
     next('An error occurred fetching sbtc data.')

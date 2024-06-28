@@ -6,11 +6,12 @@ import cors from "cors";
 import { getConfig, printConfig, setConfigOnStart } from './lib/config';
 import { WebSocketServer } from 'ws'
 import { daoRoutes } from './routes/dao/daoRoutes'
-import { rateRoutes } from './routes/rates/rateRoutes'
+import { getExchangeRates, rateRoutes, updateExchangeRate, updateExchangeRates } from './routes/rates/rateRoutes'
 import { pox3Routes } from './routes/pox3/poxRoutes'
 import { pox4Routes } from './routes/pox4/pox/pox4Routes'
-import { connect } from './lib/data/db_models';
+import { connect, getDaoMongoConfig, saveOrUpdateDaoMongoConfig } from './lib/data/db_models';
 import { pox4EventsJob } from './routes/schedules/JobScheduler';
+import { getDaoConfig, setDaoConfigOnStart } from './lib/config_dao';
 
 if (process.env.NODE_ENV === 'development') {
   dotenv.config();
@@ -26,6 +27,7 @@ app.use(morgan("tiny"));
 app.use(express.static("public"));
 app.use(cors()); 
 setConfigOnStart();
+setDaoConfigOnStart()
 printConfig()
 
 app.use(
@@ -51,10 +53,24 @@ console.log(`\n\nExpress is listening at http://localhost:${getConfig().port}`);
 console.log('Startup Environment: ', process.env.NODE_ENV);
 console.log('stacks stacksApi = ' + getConfig().stacksApi)
 console.log('bitcoin mempoolApi = ' + getConfig().mempoolUrl)
+console.log('using local db = ' + getConfig().mongoDbName)
 
 async function connectToMongoCloud() {
 
   await connect();
+  const rates = await getExchangeRates()
+  if (!rates || rates.length === 0) {
+    await updateExchangeRates()
+    console.log("Read exchange rates!");
+  }
+  const dc = await getDaoMongoConfig()
+  if (!dc) {
+    await saveOrUpdateDaoMongoConfig({
+      configId: 1,
+      contractId: getDaoConfig().VITE_DOA_PROPOSAL
+    })
+    console.log("Read initial proposal!");
+  }
 
   console.log("Connected to MongoDB!");
   const server = app.listen(getConfig().port, () => {

@@ -11,7 +11,6 @@ import { DelegationAggregationIncrease, DelegationStackExtend, DelegationStackIn
 export async function readPoolStackerEvents() {
   const url = getConfig().stacksApi + '/extended/v1/contract/' + getConfig().poxContractId! + '/events?limit=' + 20;
   let currentOffset = await countsPoolStackerEvents()
-  console.log('getProposalsForActiveVotingExt: currentOffset: ' + currentOffset)
   if (!currentOffset) currentOffset = 0
   let count = 0;
   let moreEvents = true
@@ -25,7 +24,7 @@ export async function readPoolStackerEvents() {
         moreEvents = await innerReadPoolStackerEvents(val)
         count++;
       } catch (err:any) {
-        console.log('getProposalsForActiveVotingExt: ' + url)
+        console.log('readPoolStackerEvents: ' + url)
       }
     }
     while (moreEvents)

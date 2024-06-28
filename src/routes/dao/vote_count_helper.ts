@@ -16,8 +16,8 @@ export const NAKAMOTO_VOTE_STOPS_HEIGHT = 833950
 
 export async function getSummary():Promise<any> {
   const proposalCid = (await getDaoMongoConfig()).contractId
-  const p = await getProposalFromContractId(getDaoConfig().VITE_DOA_DEPLOYER + '.' + getDaoConfig().VITE_DOA_FUNDED_SUBMISSION_EXTENSION, proposalCid)
-  if (!p) return
+  const pp = await getProposalFromContractId(getDaoConfig().VITE_DOA_DEPLOYER + '.' + getDaoConfig().VITE_DOA_FUNDED_SUBMISSION_EXTENSION, proposalCid)
+  if (!pp) return
   console.log('getSummary: ' + getDaoConfig().VITE_DOA_DEPLOYER + '.' + getDaoConfig().VITE_DOA_FUNDED_SUBMISSION_EXTENSION)
 //const soloFor = countsVotesByFilter({proposalContractId, for: true, event: 'solo-vote', amount: {$sum:1} })
   //const soloFor = proposalVotes.aggregate([{proposalContractId, for: true, event: 'solo-vote', $group: {sum_val:{$sum:"$amount"}}}]).toArray()
@@ -35,7 +35,7 @@ export async function getSummary():Promise<any> {
   //console.log('getSummary: uv pool: ', uv.filter((o) => o._id.event === 'pool-vote'))
   //const soloFor = proposalVotes.aggregate([{$group : { _id: "$proposalContractId", count: {$sum: 1}, total_amount: {$sum: "$amount" }}}]);
   return {
-    proposalData: p.proposalData,
+    proposalData: pp.proposalData,
     summary, 
     summaryWithZeros,
     uniqueDaoVoters: uv.filter((o) => o._id.event === 'vote').length,

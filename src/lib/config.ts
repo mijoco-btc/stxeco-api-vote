@@ -15,25 +15,17 @@ export function printConfig() {
 export function setConfigOnStart() {
   
   const network = process.env.NODE_ENV
-  console.log('setConfigOnStart: network' + network)
+
   CONFIG.host = process.env[network+'_host'] || '';
   CONFIG.port = Number(process.env[network + '_port']) || 6060;
   CONFIG.host = process.env[network+'_host'] || '';
 
-  console.log('setConfigOnStart: host: ' + CONFIG.host)
-  console.log('setConfigOnStart: port: ' + CONFIG.port)
-
   CONFIG.mongoDbUrl = process.env[network+'_mongoDbUrl'] || '';
-
-  console.log('setConfigOnStart: mongoDbUrl: ' + CONFIG.mongoDbUrl)
-  console.log('setConfigOnStart: mongoDbUrl: ' + process.env['mainnet_mongoDbUrl'])
-  
   CONFIG.mongoDbName = process.env[network+'_mongoDbName'] || '';
   CONFIG.mongoUser = process.env[network+'_mongoUser'] || '';
   CONFIG.mongoPwd = process.env[network+'_mongoPwd'] || '';
 
   CONFIG.btcNode = process.env[network+'_btcNode'] || '';
-  console.log('setConfigOnStart: port' + CONFIG.btcNode)
   CONFIG.btcRpcUser = process.env[network+'_btcRpcUser'] || '';
   CONFIG.btcRpcPwd = process.env[network+'_btcRpcPwd'] || '';
   CONFIG.walletPath = process.env[network+'_walletPath'] || '';
