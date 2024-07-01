@@ -118,6 +118,10 @@ export async function fetchTentativeProposals():Promise<any> {
 	const result = await tentativeProposalCollection.find({}).toArray();
 	return result;
 }
+export async function deleteTentativeProposal(tp:TentativeProposal):Promise<any> {
+	const result = await tentativeProposalCollection.deleteOne({tag: tp.tag});
+	return result;
+}
 export async function findTentativeProposalByContractId(contractId:string):Promise<any> {
 	const result = await tentativeProposalCollection.findOne({"contractId":contractId});
 	return result;

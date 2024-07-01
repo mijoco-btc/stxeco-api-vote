@@ -1,5 +1,5 @@
 import express from "express";
-import { findTentativeProposalByContractId, getDaoMongoConfig, getProposals, saveOrUpdateDaoMongoConfig } from "../../lib/data/db_models";
+import { fetchTentativeProposals, findTentativeProposalByContractId, getDaoMongoConfig, getProposals, saveOrUpdateDaoMongoConfig } from "../../lib/data/db_models";
 import { getAssetClasses, getBalanceAtHeight, getFunding, getGovernanceData, getNftHoldings, getProposalFromContractId, getProposalsForActiveVotingExt, getProposalsFromContractIds, getStacksInfo, isExecutiveTeamMember, isExtension } from "./dao_helper";
 import { poolStackerAddresses, soloStackerAddresses } from "./solo_pool_addresses";
 import { findProposalVotesByProposal, findVotesByProposalAndMethod, findVotesByProposalAndVoter, findVotesByVoter, getSummary  } from "./vote_count_helper";
@@ -322,6 +322,15 @@ router.get("/voter/events/:stxAddress", async (req, res, next) => {
   }
 });
 
+router.get("/tentative-proposals", async (req, res, next) => {
+  try {
+    const response = await fetchTentativeProposals();
+    return res.send(response);
+  } catch (error) {
+    console.log('Error in routes: ', error)
+    next('An error occurred fetching sbtc data.') 
+  }
+});
 router.get("/proposals", async (req, res, next) => {
   try {
     const response = await getProposals();
