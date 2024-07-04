@@ -6,11 +6,12 @@ import cors from "cors";
 import { getConfig, printConfig, setConfigOnStart } from './lib/config';
 import { WebSocketServer } from 'ws'
 import { daoRoutes } from './routes/dao/daoRoutes'
+import { proposalRoutes } from './routes/proposals/proposalRoutes'
 import { getExchangeRates, rateRoutes, updateExchangeRate, updateExchangeRates } from './routes/rates/rateRoutes'
 import { pox3Routes } from './routes/pox3/poxRoutes'
 import { pox4Routes } from './routes/pox4/pox/pox4Routes'
 import { connect, getDaoMongoConfig, saveOrUpdateDaoMongoConfig } from './lib/data/db_models';
-import { pox4EventsJob } from './routes/schedules/JobScheduler';
+import { initScanDaoEventsJob, initScanVotingEventsJob, pox4EventsJob } from './routes/schedules/JobScheduler';
 import { getDaoConfig, setDaoConfigOnStart } from './lib/config_dao';
 
 if (process.env.NODE_ENV === 'development') {
@@ -45,6 +46,7 @@ app.use((req, res, next) => {
 })
 
 app.use('/bridge-api/dao/v1', daoRoutes);
+app.use('/bridge-api/proposals/v1', proposalRoutes);
 app.use('/bridge-api/rates/v1', rateRoutes);
 app.use('/bridge-api/pox3/v1', pox3Routes);
 app.use('/bridge-api/pox4/v1', pox4Routes);
@@ -79,7 +81,9 @@ async function connectToMongoCloud() {
   });
 
   const wss = new WebSocketServer({ server })
-  pox4EventsJob.start();
+  //pox4EventsJob.start();
+  initScanDaoEventsJob.start();
+  initScanVotingEventsJob.start();
 
   wss.on('connection', function connection(ws:any) {
     ws.on('message', function incoming(message:any) { 

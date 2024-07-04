@@ -27,6 +27,8 @@ export type ConfigI = {
 
 export type ConfigDaoI = {
 	VITE_DOA: string;
+	VITE_DOAS: string;
+	VITE_DOA_VOTING_CONTRACTS: string;
 	VITE_DOA_DEPLOYER: string;
 	VITE_DOA_PROPOSAL: string;
 	VITE_DOA_PROPOSALS: string;

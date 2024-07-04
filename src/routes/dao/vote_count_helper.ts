@@ -1,10 +1,10 @@
 import { getDaoMongoConfig, proposalVotes } from "../../lib/data/db_models"
 import { getProposalFromContractId } from "./dao_helper"
 import { getDaoConfig } from "../../lib/config_dao"
-import { VoteEvent } from "@mijoco/stx_helpers/dist/index"
+import { TentativeProposal, VoteEvent } from "@mijoco/stx_helpers/dist/index"
 
-export const NAKAMOTO_VOTE_START_HEIGHT = 829750 + 100
-export const NAKAMOTO_VOTE_STOPS_HEIGHT = 833950
+const NAKAMOTO_VOTE_START_HEIGHT = 829750 + 100
+const NAKAMOTO_VOTE_STOPS_HEIGHT = 833950
 
 /**
  * Strategy is..
@@ -16,7 +16,7 @@ export const NAKAMOTO_VOTE_STOPS_HEIGHT = 833950
 
 export async function getSummary():Promise<any> {
   const proposalCid = (await getDaoMongoConfig()).contractId
-  const pp = await getProposalFromContractId(getDaoConfig().VITE_DOA_DEPLOYER + '.' + getDaoConfig().VITE_DOA_FUNDED_SUBMISSION_EXTENSION, proposalCid)
+  const pp = await getProposalFromContractId(proposalCid)
   if (!pp) return
   console.log('getSummary: ' + getDaoConfig().VITE_DOA_DEPLOYER + '.' + getDaoConfig().VITE_DOA_FUNDED_SUBMISSION_EXTENSION)
 //const soloFor = countsVotesByFilter({proposalContractId, for: true, event: 'solo-vote', amount: {$sum:1} })

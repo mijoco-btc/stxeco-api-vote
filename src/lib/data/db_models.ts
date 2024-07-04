@@ -6,6 +6,8 @@ import { getDaoConfig } from '../config_dao';
 
 export let exchangeRatesCollection:Collection;
 let proposals:Collection;
+export let votingContractEventCollection:Collection;
+export let daoEventCollection:Collection;
 let tentativeProposalCollection:Collection;
 export let proposalVotes:Collection;
 export let delegationEvents:Collection; 
@@ -56,6 +58,12 @@ export async function connect() {
 	
 	tentativeProposalCollection = database.collection('tentativeProposalCollection');
 	//await tentativeProposalCollection.createIndex({contractId: 1}, { unique: true })
+	
+	daoEventCollection = database.collection('daoEventCollection');
+	await daoEventCollection.createIndex({daoContract: 1, event_index: 1, txId: 1}, { unique: true })
+	
+	votingContractEventCollection = database.collection('votingContractEventCollection');
+	await votingContractEventCollection.createIndex({votingContract: 1, event_index: 1, txId: 1}, { unique: true })
 	
 	proposalVotes = database.collection('proposalVotes');
 	await proposalVotes.createIndex({submitTxId: 1}, { unique: true })
@@ -157,11 +165,23 @@ export async function updateProposal(proposal:any, changes: any) {
 	return result;
 }
 
+/**
 export async function getProposals():Promise<any> {
-	const result = await proposals.find({}).sort({"proposalData.startBlockHeight": -1}).toArray();
+	const result = await proposals.find({}).sort({"proposalData.burnStartHeight": -1}).toArray();
 	return result;
 }
 
+export async function getActiveProposals():Promise<any> {
+	const set1 = await proposals.find({ proposalData : { $exists: false } }).toArray();
+	const set2 = await proposals.find({ proposalData : { $exists: true }, 'proposalData.concluded':false }).toArray();
+	return set1.concat(set2);
+}
+
+export async function getInactiveProposals():Promise<any> {
+	const set1 = await proposals.find({ proposalData : { $exists: true }, 'proposalData.concluded':true }).toArray();
+	return set1;
+}
+ */
 export async function findProposalByContractId(contractId:string):Promise<any> {
 	const result = await proposals.findOne({"contractId":contractId});
 	return result;

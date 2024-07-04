@@ -17,8 +17,22 @@ db.daoMongoConfig.findAndModify({
 ## Insert new tentative proposal
 
 ```
-db.tentativeProposalCollection.insert( { 'tag' : 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.proposal-sbtc','submissionExtension': 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.bde002-proposal-submission','expectedStart': 600,'expectedEnd': 650,'proposalMeta': {'dao': 'bitcoin-dao','title': 'SIP 025 sBTC Update','author': 'Andre','synopsis': 'sip for doing stuf with sbtc','description': 'sip for doing stuf with sbtc'}})
+db.tentativeProposalCollection.insert( { 'tag' : 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.proposal-sbtc','expectedStart': 600,'expectedEnd': 650,'proposalMeta': {'dao': 'bitcoin-dao','title': 'SIP: sBTC Bootstrap','author': '@andrerserrano','synopsis': 'A Decentralized Two-Way Bitcoin Peg','description': 'sBTC is a novel digital asset that lets you move Bitcoin in and out of the Stacks blockchain. With sBTC, users can interact with Clarity smart contracts, which enable Bitcoin applications such as payments, decentralized lending, decentralized exchanges, and BTC-backed stablecoins.'}, votingContract: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.bde001-proposal-voting', submissionData: {contractId: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.bde002-proposal-submission'}})
 
-db.tentativeProposalCollection.insert( { 'tag' : 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.proposal-block-header','submissionExtension': 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.bde002-proposal-submission','expectedStart': 600,'expectedEnd': 650,'proposalMeta': {'dao': 'bitcoin-dao','title': 'SIP Block Headers','author': 'Brice, Friedger','synopsis': 'sip for block height changes','description': 'sip block header'}})
+db.tentativeProposalCollection.insert( { 'tag' : 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.proposal-block-header','expectedStart': 600,'expectedEnd': 650,'proposalMeta': {'dao': 'bitcoin-dao','title': 'Sip 02x non sequential multisig transactions','author': 'Brice, Friedger','synopsis': 'sip for block height changes','description': 'While implementing Stacks multisig in the Ledger app (Zondax/ledger-stacks#152), I found the current multisig format confusing and hard to work with. Other developers that have tried to work with multisig seem feel the same way (example: PR #139), and as far as I know there is currently no Stacks wallet with full multisig support. So wrote up this SIP which makes slight modifications to SIP-005 to add a new multisig transaction type which is a bit simpler and allows participants to sign in any order.'}, votingContract: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.bde001-proposal-voting', submissionData: {contractId: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.bde002-proposal-submission'}})
+```
+
+## Read DAO Events
+
+1. Read Base DAO Events
 
 ```
+/read-events-base-dao/:daoContractId
+```
+
+where dao contract is
+
+- SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.bitcoin-dao (nakamoto)
+- SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.ecosystem-dao (2.1 upgrade)
+
+

@@ -4,7 +4,7 @@ import { getDaoMongoConfig } from "../../lib/data/db_models"
 import { getBalanceAtHeight, getBurnBlockHeight } from "./dao_helper"
 import { getDaoConfig } from "../../lib/config_dao"
 import { findPoolStackerEventsByStackerAndEvent } from "../pox3/pool_stacker_events_helper"
-import { NAKAMOTO_VOTE_START_HEIGHT, NAKAMOTO_VOTE_STOPS_HEIGHT, findVotesByProposalAndMethod, saveOrUpdateVote, updateVote } from "./vote_count_helper"
+import { findVotesByProposalAndMethod, saveOrUpdateVote, updateVote } from "./vote_count_helper"
 import { VoteEvent } from "@mijoco/stx_helpers/dist/index"
 
 const limit = 50 ;
@@ -107,40 +107,6 @@ export async function reconcilePoolTxs():Promise<any> {
       } else {
         console.log('reconcilePoolTxs: rejected: vote: ' + voteTx.voter + ' offset: ' + offset)
       }
-    }
-    return;
-  } catch (err:any) {
-    console.log('err reconcilePoolTxs: ' + err);
-    return [];
-  }
-}
-
-export async function reconcilePoolTxsByBalance():Promise<any> {
-  try {
-    const proposalCid = (await getDaoMongoConfig()).contractId
-    const votesAll:Array<VoteEvent> = await findVotesByProposalAndMethod(proposalCid, 'pool-vote');
-    let bal1 = 0
-    let bal2 = 0
-    let bal3 = 0
-    for (const voteTx of votesAll) {
-        if (voteTx.voter && isVoteAllowed(voteTx, voteTx.voter, voteTx.burnBlockHeight)) {
-          bal1 = (await getBalanceAtHeight(voteTx.voter, NAKAMOTO_VOTE_START_HEIGHT + 500))?.stx?.locked || 0
-          bal2 = (await getBalanceAtHeight(voteTx.voter, NAKAMOTO_VOTE_STOPS_HEIGHT - 500))?.stx?.locked || 0
-          bal3 = Math.max(bal1, bal2)
-          let updates:any;
-          console.log('reconcilePoolTxs: bal1=' + bal1 + ' bal2=' + bal2 + ' bal3=' + bal3)
-          try {
-            updates = {
-              amount: bal3,
-            }
-            await updateVote(voteTx, updates)
-            console.log('reconcilePoolTxs: updated: ' + voteTx.event + ' : ' + voteTx.voter + ' : ' + voteTx.amount)
-          } catch(err:any) {
-            console.log('reconcilePoolTxs: error: getting first amount + ', bal3)
-          }
-        } else {
-          console.log('reconcilePoolTxs: stackerEvents: not found for ' + voteTx.voter + ' : delegate-stx')
-        }
     }
     return;
   } catch (err:any) {

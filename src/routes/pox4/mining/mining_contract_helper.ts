@@ -173,7 +173,6 @@ async function getEpochStartHeight(epochId:string):Promise<number> {
 
 async function getBurnBlocks(offset:number, limit:number):Promise<{results: [], total: number, limit:number, offset:number}> {
   const url = getConfig().stacksApi + '/extended/v2/burn-blocks?offset=' + offset + '&limit=' + limit;
-  //console.log('getProposalData: url: ' + url)
   const response = await fetch(url)
   const val = await response.json();
   return val;
@@ -181,7 +180,6 @@ async function getBurnBlocks(offset:number, limit:number):Promise<{results: [], 
 
 async function getBurnBlock(height:number):Promise<any> {
   const url = getConfig().stacksApi + '/extended/v2/burn-blocks/' + height;
-  //console.log('getProposalData: url: ' + url)
   const response = await fetch(url)
   const val = await response.json();
   return val;

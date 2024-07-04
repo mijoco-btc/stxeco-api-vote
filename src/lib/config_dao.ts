@@ -8,6 +8,9 @@ export function setDaoConfigOnStart() {
   const network = process.env.NODE_ENV
 
   CONFIG.VITE_DOA = process.env[network+'_' + 'VITE_DOA'] || '';
+  CONFIG.VITE_DOAS = 'ecosystem-dao,bitcoin-dao';
+  CONFIG.VITE_DOA_VOTING_CONTRACTS = 'bde007-snapshot-proposal-voting,bde001-proposal-voting'
+  CONFIG.VITE_DOA = process.env[network+'_' + 'VITE_DOA'] || '';
   CONFIG.VITE_DOA_DEPLOYER = process.env[network+'_' + 'VITE_DOA_DEPLOYER'] || '';
   CONFIG.VITE_DOA_PROPOSAL = process.env[network+'_' + 'VITE_DOA_PROPOSAL'] || '';
   CONFIG.VITE_DOA_PROPOSALS = process.env[network+'_' + 'VITE_DOA_PROPOSALS'] || '';

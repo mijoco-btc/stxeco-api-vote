@@ -1,58 +1,46 @@
 import express from "express";
-import { fetchTentativeProposals, findTentativeProposalByContractId, getDaoMongoConfig, getProposals, saveOrUpdateDaoMongoConfig } from "../../lib/data/db_models";
-import { getAssetClasses, getBalanceAtHeight, getFunding, getGovernanceData, getNftHoldings, getProposalFromContractId, getProposalsForActiveVotingExt, getProposalsFromContractIds, getStacksInfo, isExecutiveTeamMember, isExtension } from "./dao_helper";
+import { getDaoMongoConfig } from "../../lib/data/db_models";
+import { getAssetClasses, getBalanceAtHeight, getFunding, getGovernanceData, getNftHoldings, getProposalsForActiveVotingExt, getStacksInfo, isExecutiveTeamMember } from "./dao_helper";
 import { poolStackerAddresses, soloStackerAddresses } from "./solo_pool_addresses";
 import { findProposalVotesByProposal, findVotesByProposalAndMethod, findVotesByProposalAndVoter, findVotesByVoter, getSummary  } from "./vote_count_helper";
 import { analyseMultisig, readSoloVote, readSoloVotes, readSoloZeroVote } from "./solo_votes";
-import { getPoolTransactions, getPoolTxs, reconcilePoolTxs, reconcilePoolTxsByBalance } from "./pool_votes";
+import { getPoolTransactions, getPoolTxs, reconcilePoolTxs } from "./pool_votes";
 import { fetchAddressTransactions } from "@mijoco/btc_helpers/dist/index";
 import { getConfig } from "../../lib/config";
 import { getDaoConfig } from "../../lib/config_dao";
-import { TentativeProposal } from "@mijoco/stx_helpers";
+import { fetchBaseDaoEvents, fetchByBaseDaoEvent, readDaoEvents } from "../../lib/events/event_helper_base_dao";
+import { isExtension } from "../../lib/events/extension";
 
 const router = express.Router();
 
-router.get("/new-proposal/:start/:end/:submissionExtension/:proposalContractId", async (req, res, next) => {
+router.get("/read-events-base-dao/:daoContractId", async (req, res, next) => {
   try {
-    const tProp:TentativeProposal = {
-      tag: req.params.proposalContractId,
-      submissionExtension: req.params.proposalContractId,
-      expectedStart: Number(req.params.start),
-      expectedEnd: Number(req.params.end),
-      proposalMeta: {
-        dao: 'bitcoin-dao',
-        author: 'unknown',
-        description: 'unknown',
-        synopsis: 'unknown',
-        title: 'unknown'
-      }
-    }
-    const result = getProposalFromContractId(tProp);
-    return res.send(result);
+    await readDaoEvents(false, req.params.daoContractId)
+    console.log('processEvent: all events: ' + req.params.daoContractId)
+    return await fetchBaseDaoEvents()
   } catch (error) {
     console.log('Error in routes: ', error)
     next('An error occurred fetching pox-info.')
   }
 });
 
-router.get("/get-proposal-from-contract-id/:proposalContractId", async (req, res, next) => {
+router.get("/read-events-voting-extension/:votingExtension", async (req, res, next) => {
   try {
-    const tProp:TentativeProposal = await findTentativeProposalByContractId(req.params.proposalContractId)
-    const result = getProposalFromContractId(tProp);
-    return res.send(result);
-  } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching pox-info.')
-  }
-});
-
-router.get("/sync/proposal/:contractIds", async (req, res, next) => {
-  try {
-    const props = await getProposalsFromContractIds(req.params.contractIds);
-    return res.send(props);
+    getProposalsForActiveVotingExt(req.params.votingExtension);
+    return res.send({result: 'syncing dao data'});
   } catch (error) {
     console.log('Error in routes: ', error)
     next('An error occurred fetching sbtc data.')
+  }
+});
+
+router.get("/get-extensions/:daoContract", async (req, res, next) => {
+  try {
+    const extensions = await fetchByBaseDaoEvent(req.params.daoContract, 'extension')
+    return res.send(extensions);
+  } catch (error) {
+    console.log('Error in routes: ', error)
+    next('An error occurred fetching pox-info.')
   }
 });
 
@@ -79,7 +67,10 @@ router.get("/get-governance-data/:stacksAddress", async (req, res, next) => {
 
 router.get("/is-extension/:extensionCid", async (req, res, next) => {
   try {
-    const result = await isExtension(req.params.extensionCid);
+    const contractAddress = getDaoConfig().VITE_DOA_DEPLOYER
+    const contractName = getDaoConfig().VITE_DOA
+
+    const result = await isExtension(contractAddress, contractName, req.params.extensionCid);
     console.log('isExtension:', result)
     return res.send(result);
   } catch (error) {
@@ -307,8 +298,7 @@ router.get("/voter/events-proposal/:proposalContractId", async (req, res, next) 
     const response = await findProposalVotesByProposal(req.params.proposalContractId);
     return res.send(response);
   } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching sbtc data.')
+    return res.send([]);
   }
 });
 
@@ -322,58 +312,10 @@ router.get("/voter/events/:stxAddress", async (req, res, next) => {
   }
 });
 
-router.get("/tentative-proposals", async (req, res, next) => {
-  try {
-    const response = await fetchTentativeProposals();
-    return res.send(response);
-  } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching sbtc data.') 
-  }
-});
-router.get("/proposals", async (req, res, next) => {
-  try {
-    const response = await getProposals();
-    return res.send(response);
-  } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching sbtc data.') 
-  }
-});
 router.get("/dao-config", async (req, res, next) => {
   try {
     const response = await getDaoConfig();
     return res.send(response);
-  } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching sbtc data.')
-  }
-});
-
-router.get("/get-current-proposal", async (req, res, next) => {
-  try {
-    const response = await getDaoMongoConfig();
-    return res.send(response);
-  } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching sbtc data.')
-  }
-});
-
-router.get("/set-current-proposal/:contractId", async (req, res, next) => {
-  try {
-    let config = await getDaoMongoConfig();
-    console.log('config in routes: ', config)
-    if (!config) {
-      config = {
-        configId: 1,
-        contractId: req.params.contractId
-      }
-    } else {
-      config.contractId = req.params.contractId
-    }
-    config = await saveOrUpdateDaoMongoConfig(config)
-    return res.send(config);
   } catch (error) {
     console.log('Error in routes: ', error)
     next('An error occurred fetching sbtc data.')
@@ -441,16 +383,6 @@ router.get("/sync/results/solo-stacker-amounts", async (req, res, next) => {
 router.get("/sync/results/pool-stacker-amounts", async (req, res, next) => {
   try {
     reconcilePoolTxs();
-    return res.send({result: 'syncing data'});
-  } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching pox-info.')
-  }
-});
-
-router.get("/sync/results/pool-stacker-amounts-by-balance", async (req, res, next) => {
-  try {
-    reconcilePoolTxsByBalance();
     return res.send({result: 'syncing data'});
   } catch (error) {
     console.log('Error in routes: ', error)

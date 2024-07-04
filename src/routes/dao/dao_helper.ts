@@ -4,11 +4,12 @@
 import { stringAsciiCV, cvToJSON, deserializeCV, contractPrincipalCV, serializeCV, principalCV, uintCV } from '@stacks/transactions';
 import { hex } from '@scure/base';
 import { getConfig } from '../../lib/config';
-import DaoUtils from './DaoUtils';
-import { fetchTentativeProposals, saveOrUpdateProposal } from '../../lib/data/db_models';
+import { fetchTentativeProposals, findProposalByContractId, saveOrUpdateProposal } from '../../lib/data/db_models';
 import { getDaoConfig } from '../../lib/config_dao';
-import { countsVotesByMethod, countsVotesByProposalAndMethod, saveOrUpdateVote } from './vote_count_helper';
-import { FundingData, GovernanceData, NFTHolding, NFTHoldings, ProposalContract, ProposalData, ProposalEvent, ProposalStage, SignalData, SubmissionData, TentativeProposal, VoteEvent, callContractReadOnly, fetchDataVar } from '@mijoco/stx_helpers/dist/index';
+import { countsVotesByMethod, saveOrUpdateVote } from './vote_count_helper';
+import { FundingData, GovernanceData, NFTHolding, NFTHoldings, ProposalContract, ProposalData, ProposalEvent, ProposalStage, SignalData, SubmissionData, TentativeProposal, VoteEvent, VotingEventProposeProposal, callContractReadOnly, fetchDataVar } from '@mijoco/stx_helpers/dist/index';
+import { fetchProposeEvent } from '../../lib/events/event_helper_voting_contract';
+import { getMetaData, getProposalContractSource, getProposalData } from '../../lib/events/proposal';
 
 let uris:any = {};
 const gateway = "https://hashone.mypinata.cloud/";
@@ -224,10 +225,10 @@ async function innerProposalsForActiveVotingExt(url:string, currentOffset:number
   for (const event of val.results) {
     try {
       const result = cvToJSON(deserializeCV(event.contract_log.value.hex));
+      const submissionData = await getSubmissionData(event.tx_id)
       if (result.value.event.value === 'propose') {
-        const proposalData = await getProposalData(result.value.proposal.value)
-        const contract = await getProposalContract(result.value.proposal.value)
-        const submissionData = await getSubmissionData(event.tx_id)
+        const proposalData = await getProposalData(votingContractId, result.value.proposal.value)
+        const contract = await getProposalContractSource(result.value.proposal.value)
         let funding:FundingData|undefined
         try {
           funding = await getFunding(submissionData.contractId, result.value.proposal.value)
@@ -243,7 +244,7 @@ async function innerProposalsForActiveVotingExt(url:string, currentOffset:number
           proposalData,
           contract,
           submitTxId: event.tx_id,
-          proposalMeta: DaoUtils.getMetaData(contract.source),
+          proposalMeta: getMetaData(contract.source),
           votingContract: event.contract_log.contract_id,
           submissionData,
           funding,
@@ -263,6 +264,10 @@ async function innerProposalsForActiveVotingExt(url:string, currentOffset:number
           submitTxId: event.tx_id,
         } as VoteEvent
         await saveOrUpdateVote(vote)
+      } else if (result.value.event.value === 'conclude') {
+        const prop = await findProposalByContractId(result.value.proposal.value)
+        prop.stage = ProposalStage.CONCLUDED
+        await saveOrUpdateVote(prop)
       }
     } catch (err:any) {
       console.log('innerProposalsForActiveVotingExt: ' + err.message)
@@ -276,20 +281,21 @@ export async function getProposalsFromContractIds(proposalContractIds:string):Pr
   const proposalCids = proposalContractIds.split(',')
   const props = []
   for (const tProp of tProps) {
-    const p = await getProposalFromContractId(tProp)
+    const p = await getProposalFromContractId(tProp.tag)
     props.push(p)
   }
   return props
 }
 
-export async function getProposalFromContractId(tProp:TentativeProposal):Promise<ProposalEvent|undefined> {
+export async function getProposalFromContractId(contractId:string):Promise<ProposalEvent|undefined> {
   let proposal:ProposalEvent|undefined = undefined;
   try {
-    const proposalContractId = tProp.tag
-    console.log('getProposalData: proposalContractId: ' + proposalContractId)
+    const proposeEvent:VotingEventProposeProposal = await fetchProposeEvent(contractId)
+    if (!proposeEvent) return;
+    const proposalContractId = contractId
     let contract;
     try {
-      contract = await getProposalContract(proposalContractId)
+      contract = await getProposalContractSource(proposalContractId)
       if (!contract) return;
     } catch(err:any) {
       return;
@@ -299,16 +305,16 @@ export async function getProposalFromContractId(tProp:TentativeProposal):Promise
     let signals;
     let stage = ProposalStage.PARTIAL_FUNDING;
     try {
-      funding = await getFunding(tProp.submissionExtension, proposalContractId);
+      funding = await getFunding(proposeEvent.submissionContract, proposalContractId);
       if (funding.funding === 0) stage = ProposalStage.UNFUNDED
       //signals = await getSignals(proposalContractId)
-      proposalMeta = DaoUtils.getMetaData(contract.source)
+      proposalMeta = getMetaData(contract.source)
     } catch (err:any) {
       console.log('getProposalFromContractId: funding: ' + err.message)
     }
     let proposalData:ProposalData|undefined;
     try {
-      proposalData = await getProposalData(proposalContractId)
+      proposalData = await getProposalData(proposalContractId, proposalContractId)
     } catch (err:any) { 
       console.log('getProposalFromContractId: proposalData1: ' + err.message)
     }
@@ -316,7 +322,7 @@ export async function getProposalFromContractId(tProp:TentativeProposal):Promise
       contract,
       proposalMeta,
       contractId: proposalContractId,
-      submissionData: { contractId: tProp.submissionExtension, transaction: undefined },
+      submissionData: { contractId: proposeEvent.submissionContract, transaction: undefined },
       signals,
       stage,
       funding
@@ -326,36 +332,9 @@ export async function getProposalFromContractId(tProp:TentativeProposal):Promise
     proposal = p
   } catch(err:any) {
     console.log('getProposalFromContractId: proposalData2: ' + err.message)
+    return
   }
   return proposal
-}
-
-export async function getProposalData(principle:string):Promise<ProposalData> {
-  console.log('getProposalData: data: ' + principle)
-  const functionArgs = [`0x${hex.encode(serializeCV(contractPrincipalCV(principle.split('.')[0], principle.split('.')[1] )))}`];
-  const data = {
-    contractAddress: getDaoConfig().VITE_DOA_DEPLOYER,
-    contractName: getDaoConfig().VITE_DOA_SNAPSHOT_VOTING_EXTENSION,
-    functionName: 'get-proposal-data',
-    functionArgs,
-  }
-  const result = await callContractReadOnly(getConfig().stacksApi, data);
-  const start = Number(result.value.value['start-block-height'].value)
-  const end = Number(result.value.value['end-block-height'].value)
-  //console.log('result.value.value[custom-majority].value: ' + result.value.value['custom-majority'].value.value)
-  const pd = {
-    concluded:Boolean(result.value.value.concluded.value),
-    passed:Boolean(result.value.value.passed.value), 
-    proposer:result.value.value.proposer.value,
-    customMajority:Number(result.value.value['custom-majority'].value.value),
-    endBlockHeight:end,
-    startBlockHeight:start,
-    votesAgainst:Number(result.value.value['votes-against'].value),
-    votesFor:Number(result.value.value['votes-for'].value),
-    burnStartHeight: await getBurnBlockHeight(start),
-    burnEndHeight: await getBurnBlockHeight(end)
-  }
-  return pd;
 }
 
 export async function getGovernanceData(principle:string):Promise<GovernanceData> {
@@ -374,23 +353,6 @@ export async function getGovernanceData(principle:string):Promise<GovernanceData
       userBalance: 0,
       userLocked: 0,
     }
-  }
-}
-
-export async function isExtension(extensionCid:string):Promise<{result: boolean}> {
-  const functionArgs = [`0x${hex.encode(serializeCV(contractPrincipalCV(extensionCid.split('.')[0], extensionCid.split('.')[1] )))}`];
-  const data = {
-    contractAddress: getDaoConfig().VITE_DOA_DEPLOYER,
-    contractName: getDaoConfig().VITE_DOA,
-    functionName: 'is-extension',
-    functionArgs,
-  }
-  let res:{value:boolean, type:string};
-  try {
-    res = (await callContractReadOnly(getConfig().stacksApi, data));
-    return { result: res.value }
-  } catch (e) { 
-    return { result: false } 
   }
 }
 
@@ -413,15 +375,16 @@ export async function getFunding(extensionCid:string, proposalCid:string):Promis
 }
 
 async function getExecutedAt(principle:string):Promise<number> {
-  const functionArgs = [`0x${hex.encode(serializeCV(contractPrincipalCV(principle.split('.')[0], principle.split('.')[1] )))}`];
-  const data = {
-    contractAddress: getDaoConfig().VITE_DOA_DEPLOYER,
-    contractName: getDaoConfig().VITE_DOA,
-    functionName: 'executed-at',
-    functionArgs,
-  }
-  const result = await callContractReadOnly(getConfig().stacksApi, data);
+  let result;
   try {
+    const functionArgs = [`0x${hex.encode(serializeCV(contractPrincipalCV(principle.split('.')[0], principle.split('.')[1] )))}`];
+    const data = {
+      contractAddress: getDaoConfig().VITE_DOA_DEPLOYER,
+      contractName: getDaoConfig().VITE_DOA,
+      functionName: 'executed-at',
+      functionArgs,
+    }
+    result = await callContractReadOnly(getConfig().stacksApi, data);
     return Number(result.value.value)
   } catch(err:any) {
     try {
@@ -481,17 +444,9 @@ async function getSubmissionData(txId:string):Promise<SubmissionData> {
   const fundingTx = await getTransaction(txId)
   const pd = {
     contractId:fundingTx.contract_call.contract_id,
-    transaction: fundingTx
+    transaction: fundingTx.tx_id
   }
   return pd;
-}
-
-async function getProposalContract(principle:string):Promise<ProposalContract> {
-  const url = getConfig().stacksApi + '/v2/contracts/source/' + principle.split('.')[0] + '/' + principle.split('.')[1] + '?proof=0';
-  //console.log('getProposalData: url: ' + url)
-  const response = await fetch(url)
-  const val = await response.json();
-  return val;
 }
 
 export async function getBurnBlockHeight(height:number):Promise<number> {
