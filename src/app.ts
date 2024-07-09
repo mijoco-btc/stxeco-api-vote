@@ -6,13 +6,14 @@ import cors from "cors";
 import { getConfig, printConfig, setConfigOnStart } from './lib/config';
 import { WebSocketServer } from 'ws'
 import { daoRoutes } from './routes/dao/daoRoutes'
+import { daoVotingRoutes } from './routes/voting/daoVotingRoutes'
+import { stackerVotingRoutes } from './routes/voting/stackerVotingRoutes'
 import { proposalRoutes } from './routes/proposals/proposalRoutes'
-import { getExchangeRates, rateRoutes, updateExchangeRate, updateExchangeRates } from './routes/rates/rateRoutes'
+import { getExchangeRates, rateRoutes, updateExchangeRates } from './routes/rates/rateRoutes'
 import { pox3Routes } from './routes/pox3/poxRoutes'
 import { pox4Routes } from './routes/pox4/pox/pox4Routes'
-import { connect, getDaoMongoConfig, saveOrUpdateDaoMongoConfig } from './lib/data/db_models';
-import { initScanDaoEventsJob, initScanVotingEventsJob, pox4EventsJob } from './routes/schedules/JobScheduler';
-import { getDaoConfig, setDaoConfigOnStart } from './lib/config_dao';
+import { connect } from './lib/data/db_models';
+import { setDaoConfigOnStart } from './lib/config_dao';
 
 if (process.env.NODE_ENV === 'development') {
   dotenv.config();
@@ -50,6 +51,8 @@ app.use('/bridge-api/proposals/v1', proposalRoutes);
 app.use('/bridge-api/rates/v1', rateRoutes);
 app.use('/bridge-api/pox3/v1', pox3Routes);
 app.use('/bridge-api/pox4/v1', pox4Routes);
+app.use('/bridge-api/dao-voting/v1', daoVotingRoutes);
+app.use('/bridge-api/stacker-voting/v1', stackerVotingRoutes);
 
 console.log(`\n\nExpress is listening at http://localhost:${getConfig().port}`);
 console.log('Startup Environment: ', process.env.NODE_ENV);
@@ -65,14 +68,6 @@ async function connectToMongoCloud() {
     await updateExchangeRates()
     console.log("Read exchange rates!");
   }
-  const dc = await getDaoMongoConfig()
-  if (!dc) {
-    await saveOrUpdateDaoMongoConfig({
-      configId: 1,
-      contractId: getDaoConfig().VITE_DOA_PROPOSAL
-    })
-    console.log("Read initial proposal!");
-  }
 
   console.log("Connected to MongoDB!");
   const server = app.listen(getConfig().port, () => {
@@ -82,8 +77,8 @@ async function connectToMongoCloud() {
 
   const wss = new WebSocketServer({ server })
   //pox4EventsJob.start();
-  initScanDaoEventsJob.start();
-  initScanVotingEventsJob.start();
+  //initScanDaoEventsJob.start();
+  //initScanVotingEventsJob.start();
 
   wss.on('connection', function connection(ws:any) {
     ws.on('message', function incoming(message:any) { 

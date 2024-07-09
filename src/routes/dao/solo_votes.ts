@@ -1,14 +1,11 @@
 import { getConfig } from "../../lib/config"
-import { getDaoConfig } from "../../lib/config_dao";
-import { getDaoMongoConfig } from "../../lib/data/db_models";
-import { findPoolStackerEventsByHashBytesAndEvent } from "../pox3/pool_stacker_events_helper";
 import { extractAllPoxEntriesInCycle, findPoxEntriesByAddressAndCycle, getAddressFromHashBytes, getHashBytesFromAddress } from "../pox3/pox_helper";
-import { getNet, soloStackerAddresses } from "./solo_pool_addresses"
-import { findVotesByProposalAndMethod, findVotesBySoloZeroAmounts, findVotesByVoter, saveOrUpdateVote, saveVote, updateVote } from "./vote_count_helper";
+import { findVotesByProposalAndMethod, findVotesBySoloZeroAmounts, findVotesByVoter, saveVote, updateVote } from "./vote_count_helper";
 import * as btc from '@scure/btc-signer';
 import { hex } from '@scure/base';
 import { fetchAddressTransactions, fetchAddressTransactionsMin, fetchTransaction } from "@mijoco/btc_helpers/dist/index";
-import { VoteEvent } from "@mijoco/stx_helpers/dist/index";
+import { VoteEvent, VotingEventProposeProposal } from "@mijoco/stx_helpers/dist/index";
+import assert from "assert";
 
 
 export async function analyseMultisig(address:string) {
@@ -37,12 +34,12 @@ export async function analyseMultisig(address:string) {
   return {inner0Wpkh, inner1Wpkh, inner2Wpkh}
 }
 
-export async function readSoloVotes() {
-  const addresses = soloStackerAddresses(getConfig().network)
-  const soloTxsYes = await fetchAddressTransactions(getConfig().mempoolUrl, addresses.yAddress);
-  const soloTxsNo = await fetchAddressTransactions(getConfig().mempoolUrl, addresses.nAddress);
-  await addToMongoDB(soloTxsYes, true)
-  await addToMongoDB(soloTxsNo, false)
+export async function readSoloVotes(proposal:VotingEventProposeProposal) {
+  assert(proposal.stackerData)
+  const soloTxsYes = await fetchAddressTransactions(getConfig().mempoolUrl, proposal.stackerData.bitcoinAddressYes);
+  const soloTxsNo = await fetchAddressTransactions(getConfig().mempoolUrl, proposal.stackerData.bitcoinAddressNo);
+  await addToMongoDB(proposal, soloTxsYes, true)
+  await addToMongoDB(proposal, soloTxsNo, false)
   return;
 }
 
@@ -110,9 +107,8 @@ export async function readSoloZeroVote() {
 /**
  * Step 2: match votes to pox data
  */
-export async function reconcileSoloTxs():Promise<any> {
-  const proposalCid = (await getDaoMongoConfig()).contractId
-  const votesAll:Array<VoteEvent> = await findVotesByProposalAndMethod(proposalCid, 'solo-vote');
+export async function reconcileSoloTxs(proposal:VotingEventProposeProposal):Promise<any> {
+  const votesAll:Array<VoteEvent> = await findVotesByProposalAndMethod(proposal.proposal, 'solo-vote');
   console.log('setSoloVotes: pe1:', votesAll.length)
   for (const v of votesAll) {
     if (v && v.poxAddr) {
@@ -128,26 +124,6 @@ export async function reconcileSoloTxs():Promise<any> {
         console.log('reconcileSoloTxs: address ' + v.voter + ' not pox address: ' + bitcoinAddress)
       }
     }
-    /**
-    } else {
-      // search for hash bytes in event data
-      const events = await findPoolStackerEventsByHashBytesAndEvent(v.poxAddr.hashBytes, 'stack-stx')
-      console.log('setSoloVotes: events:', events)
-      let counter = 0
-      let amount = 0
-      if (events && events.length > 0) {
-        for (const entry of events) {
-          if (entry.data.unlockBurnHeight > NAKAMOTO_VOTE_START_HEIGHT) {
-            counter++
-            amount += entry.data.lockAmount
-          }
-          v.poxStacker = entry.stacker
-        }
-        v.amount = amount
-        saveOrUpdateVote(v)
-      }
-      
-    } */
   }
   return votesAll;
 }
@@ -195,9 +171,7 @@ async function determineTotalAverageUstx(bitcoinAddress:string) {
   return { total, totalNested, poxStacker }
 }
 
-async function addToMongoDB(txs:Array<any>, vfor:boolean):Promise<Array<VoteEvent>> {
-  const proposalCid = (await getDaoMongoConfig()).contractId
-  const votingCid = getDaoConfig().VITE_DOA_DEPLOYER + '.' + getDaoConfig().VITE_DOA_SNAPSHOT_VOTING_EXTENSION
+async function addToMongoDB(proposal:VotingEventProposeProposal, txs:Array<any>, vfor:boolean):Promise<Array<VoteEvent>> {
   let votes:Array<VoteEvent> = []
   for (const v of txs) {
     try {
@@ -211,8 +185,8 @@ async function addToMongoDB(txs:Array<any>, vfor:boolean):Promise<Array<VoteEven
           for: vfor,
           submitTxId: v.txid,
           event: 'solo-vote',
-          proposalContractId: proposalCid,
-          votingContractId: votingCid,
+          proposalContractId: proposal.proposal,
+          votingContractId: proposal.votingContract,
           poxAddr,
           voter: bitcoinAddress,
           burnBlockHeight: v.status.block_height,

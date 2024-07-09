@@ -326,7 +326,7 @@ export async function readSavePoxEntries(cycle:number, len:number, offset:number
       console.log('saveOrUpdatePoxEntry: saving: ' + poxEntry.bitcoinAddr + '/' + poxEntry.stacker + '/' + poxEntry.cycle + '/' + poxEntry.index)
       await savePoxEntryInfo(poxEntry)
     } catch (err:any) {
-      console.log('saveOrUpdateVote: unable to save or update' + poxEntry.bitcoinAddr)
+      console.log('saveOrUpdatePoxEntry: unable to save or update' + poxEntry.bitcoinAddr)
     }
   }
 

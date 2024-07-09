@@ -5,7 +5,7 @@ import { cvToJSON, deserializeCV } from '@stacks/transactions';
 import { getConfig } from '../../../lib/config';
 import { pox4EventsCollection } from '../../../lib/data/db_models';
 import util from 'util'
-import type { DelegationAggregationIncrease, DelegationStackExtend, DelegationStackIncrease, DelegationStackStx, DelegationStx, HandleUnlock, PoolStackerEvent, PoxAddress, StackExtend, StackIncrease, StackStx } from '@mijoco/stx_helpers/dist/index';
+import type { DelegationAggregationIncrease, DelegationStackExtend, DelegationStackIncrease, DelegationStackStx, DelegationStx, HandleUnlock, PoolStackerEvent, PoxAddress, RevokeDelegateStx, StackExtend, StackIncrease, StackStx } from '@mijoco/stx_helpers/dist/index';
 
 
 export async function readPox4Events() {
@@ -57,7 +57,7 @@ async function innerReadPox4Events(val:any):Promise<any> {
         stacker: result.stacker.value,
       } as any
 
-      let data:DelegationStx|DelegationAggregationIncrease|DelegationStackExtend|DelegationStackStx|DelegationStackIncrease|StackStx|StackIncrease|StackExtend|HandleUnlock = {} as DelegationStx
+      let data:DelegationStx|RevokeDelegateStx|DelegationAggregationIncrease|DelegationStackExtend|DelegationStackStx|DelegationStackIncrease|StackStx|StackIncrease|StackExtend|HandleUnlock = {} as DelegationStx
       if (eventName === 'stack-aggregation-increase') {
         data = {
           amountUstx: Number(result.data.value['amount-ustx'].value),
@@ -144,6 +144,13 @@ async function innerReadPox4Events(val:any):Promise<any> {
           firstCycleLocked: Number(result.data.value['first-cycle-locked'].value),
           poxAddr: extractPoxAddress(result.data.value['pox-addr']),
           firstUnlockedCycle: Number(result.data.value['first-unlocked-cycle'].value),
+        }
+      } else if (eventName === 'revoke-delegate-stx') {
+        data = {
+          amountUstx:0,
+          delegator: result.data.value['delegate-to'].value,
+          endCycleId: Number(result.data.value['end-cycle-id']),
+          startCycleId: Number(result.data.value['start-cycle-id'].value),
         }
       } else {
         console.log('innerReadPox4Events: missed: ', util.inspect(result, false, null, true /* enable colors */));

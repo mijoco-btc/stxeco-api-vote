@@ -28,7 +28,7 @@ export async function readDaoEvents(genesis:boolean, daoContractId:string) {
     while (moreEvents)
   }
   catch (err) {
-      console.log('readDaoEvents: ', err);
+      console.log('readDaoEvents: error: ', err);
   }
   return extensions;
 }
@@ -37,7 +37,7 @@ async function resolveExtensionEvents(url:string, currentOffset:number, total:nu
   let urlOffset = url + '&offset=' + (currentOffset + (total * 20))
   const response = await fetch(urlOffset);
   const val = await response.json();
-  console.log('DaoEvents: processing ' + (val?.results?.length || 0) + ' events from ' + url)
+  if (val?.results?.length > 0) console.log('DaoEvents: processing ' + (val?.results?.length || 0) + ' events from ' + url)
   for (const event of val.results) {
     const pdb = await findBaseDaoEventByContractAndIndex(daoContractId, Number(event.event_index), event.tx_id)
     if (!pdb) {

@@ -192,10 +192,10 @@ export async function findPox4BitcoinStacksTx(page:number, limit:number):Promise
 
 export async function saveOrUpdateEntry(poxEntry:Layer1StacksTx) {
   try {
-    console.log('saveOrUpdatePoxEntry: saving: ' + poxEntry.name + ' / ' + poxEntry.txId)
+    console.log('saveOrUpdateEntry: saving: ' + poxEntry.name + ' / ' + poxEntry.txId)
     await savePoxEntryInfo(poxEntry)
   } catch (err:any) {
-    console.log('saveOrUpdateVote: unable to save or update: ' + poxEntry.name + ' / ' + poxEntry.txId)
+    console.log('saveOrUpdateEntry: unable to save or update: ' + poxEntry.name + ' / ' + poxEntry.txId)
   }
 }
 

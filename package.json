@@ -19,7 +19,7 @@
   "description": "",
   "dependencies": {
     "@mijoco/btc_helpers": "^0.0.1",
-    "@mijoco/stx_helpers": "^0.3.0",
+    "@mijoco/stx_helpers": "^0.3.5",
     "@noble/curves": "^1.4.0",
     "@noble/secp256k1": "^2.1.0",
     "@scure/base": "^1.1.7",

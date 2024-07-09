@@ -9,7 +9,7 @@ let proposals:Collection;
 export let votingContractEventCollection:Collection;
 export let daoEventCollection:Collection;
 let tentativeProposalCollection:Collection;
-export let proposalVotes:Collection;
+export let stackerVotes:Collection;
 export let delegationEvents:Collection; 
 export let rewardSlotHolders:Collection;
 export let poxAddressInfo:Collection;
@@ -65,8 +65,8 @@ export async function connect() {
 	votingContractEventCollection = database.collection('votingContractEventCollection');
 	await votingContractEventCollection.createIndex({votingContract: 1, event_index: 1, txId: 1}, { unique: true })
 	
-	proposalVotes = database.collection('proposalVotes');
-	await proposalVotes.createIndex({submitTxId: 1}, { unique: true })
+	stackerVotes = database.collection('stackerVotes');
+	await stackerVotes.createIndex({submitTxId: 1}, { unique: true })
 	
 	daoMongoConfig = database.collection('daoMongoConfig');
 	await daoMongoConfig.createIndex({configId: 1}, { unique: true })
@@ -122,8 +122,22 @@ export async function updateTentativeProposal(proposal:any, changes: any) {
 	return result;
 }
 
+export function stripNonSipResults(response:Array<any>) {
+	for (const cId of getDaoConfig().VITE_DOA_SIP_VOTES.split(',')) {
+		const index = response.findIndex((o:any) => o.tag === cId.trim());
+		if (index > -1) {
+			response.splice(index, 1);
+		}
+	}
+	return response;
+}
+
 export async function fetchTentativeProposals():Promise<any> {
 	const result = await tentativeProposalCollection.find({}).toArray();
+	return result;
+}
+export async function fetchTentativeProposalsActive():Promise<any> {
+	const result = await tentativeProposalCollection.find({visible: true}).toArray();
 	return result;
 }
 export async function deleteTentativeProposal(tp:TentativeProposal):Promise<any> {
@@ -131,11 +145,9 @@ export async function deleteTentativeProposal(tp:TentativeProposal):Promise<any>
 	return result;
 }
 export async function findTentativeProposalByContractId(contractId:string):Promise<any> {
-	const result = await tentativeProposalCollection.findOne({"contractId":contractId});
+	const result = await tentativeProposalCollection.findOne({"tag":contractId});
 	return result;
 }
-
-
 
 
 export async function saveOrUpdateProposal(p:ProposalEvent) {
@@ -165,23 +177,6 @@ export async function updateProposal(proposal:any, changes: any) {
 	return result;
 }
 
-/**
-export async function getProposals():Promise<any> {
-	const result = await proposals.find({}).sort({"proposalData.burnStartHeight": -1}).toArray();
-	return result;
-}
-
-export async function getActiveProposals():Promise<any> {
-	const set1 = await proposals.find({ proposalData : { $exists: false } }).toArray();
-	const set2 = await proposals.find({ proposalData : { $exists: true }, 'proposalData.concluded':false }).toArray();
-	return set1.concat(set2);
-}
-
-export async function getInactiveProposals():Promise<any> {
-	const set1 = await proposals.find({ proposalData : { $exists: true }, 'proposalData.concluded':true }).toArray();
-	return set1;
-}
- */
 export async function findProposalByContractId(contractId:string):Promise<any> {
 	const result = await proposals.findOne({"contractId":contractId});
 	return result;
@@ -191,43 +186,5 @@ export async function findProposalByContractIdConcluded(contractId:string):Promi
 	const result = await proposals.findOne({"contractId":contractId});
 	return result;
 }
-
-export async function getDaoMongoConfig():Promise<any> {
-	const result = await daoMongoConfig.find({}).toArray()
-	if (result && result.length > 0) return result[0];
-	return {
-		configId: 1,
-		contractId: getDaoConfig().VITE_DOA_PROPOSAL
-	}
-}
-
-export async function saveOrUpdateDaoMongoConfig(config:any) {
-	try {
-		const pdb = await getDaoMongoConfig()
-		if (pdb) {
-			console.log('updateDaoMongoConfig: updating: ' + config.contractId);
-			await updateDaoMongoConfig(pdb, config)
-		} else {
-			console.log('saveDaoMongoConfig: saving: ' + config.contractId);
-			await saveDaoMongoConfig(config)
-		}
-		return await getDaoMongoConfig()
-	} catch (err:any) {
-		console.log('saveOrUpdateProposal: error')
-	}
-}
-async function saveDaoMongoConfig(config:any) {
-	const result = await daoMongoConfig.insertOne(config);
-	return result;
-}
-async function updateDaoMongoConfig(config:any, changes: any) {
-	const result = await daoMongoConfig.updateOne({
-		_id: config._id
-	},
-    { $set: changes});
-	return result;
-}
-
-
 
 

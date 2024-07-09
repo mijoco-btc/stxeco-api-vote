@@ -9,7 +9,7 @@ import { getDaoConfig } from '../../lib/config_dao';
 import { countsVotesByMethod, saveOrUpdateVote } from './vote_count_helper';
 import { FundingData, GovernanceData, NFTHolding, NFTHoldings, ProposalContract, ProposalData, ProposalEvent, ProposalStage, SignalData, SubmissionData, TentativeProposal, VoteEvent, VotingEventProposeProposal, callContractReadOnly, fetchDataVar } from '@mijoco/stx_helpers/dist/index';
 import { fetchProposeEvent } from '../../lib/events/event_helper_voting_contract';
-import { getMetaData, getProposalContractSource, getProposalData } from '../../lib/events/proposal';
+import { getFunding, getMetaData, getProposalContractSource, getProposalData } from '../../lib/events/proposal';
 
 let uris:any = {};
 const gateway = "https://hashone.mypinata.cloud/";
@@ -356,24 +356,6 @@ export async function getGovernanceData(principle:string):Promise<GovernanceData
   }
 }
 
-export async function getFunding(extensionCid:string, proposalCid:string):Promise<FundingData> {
-  const functionArgs = [`0x${hex.encode(serializeCV(contractPrincipalCV(proposalCid.split('.')[0], proposalCid.split('.')[1] )))}`];
-  const data = {
-    contractAddress: extensionCid.split('.')[0],
-    contractName: extensionCid.split('.')[1],
-    functionName: 'get-proposal-funding',
-    functionArgs,
-  }
-  let funding:string;
-  try {
-    funding = (await callContractReadOnly(getConfig().stacksApi, data)).value;
-  } catch (e) { funding = '0' }
-  return {
-    funding: Number(funding),
-    parameters: await getFundingParams(extensionCid)
-  }
-}
-
 async function getExecutedAt(principle:string):Promise<number> {
   let result;
   try {
@@ -414,29 +396,6 @@ async function getEmergencyExecuteParams():Promise<any> {
   return {
     executiveSignalsRequired: Number(await fetchDataVar(getConfig().stacksApi, getDaoConfig().VITE_DOA_DEPLOYER,getDaoConfig().VITE_DOA_EMERGENCY_EXECUTE_EXTENSION, 'executive-signals-required') || 0),
     executiveTeamSunsetHeight: Number(await fetchDataVar(getConfig().stacksApi, getDaoConfig().VITE_DOA_DEPLOYER,getDaoConfig().VITE_DOA_EMERGENCY_EXECUTE_EXTENSION, 'executive-team-sunset-height') || 0),
-  }
-}
-
-export async function getFundingParams(extensionCid:string):Promise<any> {
-  const functionArgs = [`0x${hex.encode(serializeCV(stringAsciiCV('funding-cost')))}`];
-  const data = {
-    contractAddress: extensionCid.split('.')[0],
-    contractName: extensionCid.split('.')[1],
-    functionName: 'get-parameter',
-    functionArgs
-  }
-  const param1 = (extensionCid.split('.')[1] === 'ede008-flexible-funded-submission') ? 'minimum-proposal-start-delay' : 'proposal-start-delay'
-  const param2 = (extensionCid.split('.')[1] === 'ede008-flexible-funded-submission') ? 'minimum-proposal-duration' : 'proposal-duration'
-  //console.log('Running: getFundingParams: ', data);
-  const fundingCost = (await callContractReadOnly(getConfig().stacksApi, data)).value.value;
-  data.functionArgs = [`0x${hex.encode(serializeCV(stringAsciiCV(param1)))}`];
-  const proposalStartDelay = (await callContractReadOnly(getConfig().stacksApi, data)).value.value;
-  data.functionArgs = [`0x${hex.encode(serializeCV(stringAsciiCV(param2)))}`];
-  const proposalDuration = (await callContractReadOnly(getConfig().stacksApi, data)).value.value;
-  return {
-    fundingCost: Number(fundingCost),
-    proposalDuration: Number(proposalDuration),
-    proposalStartDelay: Number(proposalStartDelay),
   }
 }
 

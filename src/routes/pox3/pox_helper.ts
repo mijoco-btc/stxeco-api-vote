@@ -1,5 +1,5 @@
 import { hex } from '@scure/base';
-import { poxAddressInfo, proposalVotes } from "../../lib/data/db_models";
+import { poxAddressInfo, stackerVotes } from "../../lib/data/db_models";
 import * as btc from '@scure/btc-signer';
 import { getConfig } from "../../lib/config";
 import { getNumbEntriesRewardCyclePoxList, getPoxCycleInfo, getPoxInfo, getStackerInfoFromContract, getRewardSetPoxAddress } from "./pox_contract_helper";
@@ -17,7 +17,7 @@ const ADDRESS_VERSION_NATIVE_P2WSH = new Uint8Array([5])
 const ADDRESS_VERSION_NATIVE_P2TR = new Uint8Array([6])
 
 export async function findVotesByVoter(voter:string):Promise<any> {
-  const result = await proposalVotes.find({"voter":voter}).toArray();
+  const result = await stackerVotes.find({"voter":voter}).toArray();
   return result;
 }
 
@@ -196,12 +196,12 @@ function getVersionAsType(version:string) {
 }
 
 export function getAddressFromHashBytes(hashBytes:string, version:string) {
-  const net = (getConfig().network === 'testnet') ? btc.TEST_NETWORK : btc.NETWORK
-  if (!version.startsWith('0x')) version = '0x' + version
-  if (!hashBytes.startsWith('0x')) hashBytes = '0x' + hashBytes
   let btcAddr:string|undefined;
   try {
-    let txType = getVersionAsType(version)
+    const net = (getConfig().network === 'testnet') ? btc.TEST_NETWORK : btc.NETWORK
+    if (!version.startsWith('0x')) version = '0x' + version
+    if (!hashBytes.startsWith('0x')) hashBytes = '0x' + hashBytes
+      let txType = getVersionAsType(version)
     let outType:any;
     if (txType === 'tr') {
       outType = {
@@ -351,7 +351,7 @@ export async function readSavePoxEntries(cycle:number, len:number, offset:number
     console.log('saveOrUpdatePoxEntry: saving: ' + poxEntry.bitcoinAddr + '/' + poxEntry.stacker + '/' + poxEntry.cycle + '/' + poxEntry.index)
     await savePoxEntryInfo(poxEntry)
   } catch (err:any) {
-		console.log('saveOrUpdateVote: unable to save or update' + poxEntry.bitcoinAddr)
+		console.log('saveOrUpdatePoxEntry: unable to save or update' + poxEntry.bitcoinAddr)
 	}
 }
 

@@ -111,11 +111,11 @@ export async function findRewardSlot(address:string, slot_index:number, burn_blo
 export async function saveNotUpdateRewardSlot(v:RewardSlot) {
   const pdb = await findRewardSlot(v.address, v.slot_index, v.burn_block_height)
   if (!pdb || !pdb._id) {
-    console.log('saveOrUpdateVote: saving: ' + v.address);
+    console.log('saveNotUpdateRewardSlot: saving: ' + v.address);
     await saveRewardSlot(v)
   } else {
-    console.error('Already saved this one.. exiting.. ', v)
-    throw new Error('Already saved - no need to continue...')
+    console.error('saveNotUpdateRewardSlot Already saved this one.. exiting.. ', v)
+    throw new Error('saveNotUpdateRewardSlot Already saved - no need to continue...')
   }
 }
 
