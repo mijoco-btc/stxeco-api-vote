@@ -55,9 +55,9 @@ export async function countsVotesByProposalAndMethod(proposalContractId:string, 
     return result;
   }
   
-  export async function findVotesByProposalAndVoter(proposalContractId:string, voter:string):Promise<any> {
-    const result = await stackerVotes.find({"proposalContractId":proposalContractId, "voter":voter}).toArray();
-    return result;
+  export async function findVoteByProposalAndVoter(proposalContractId:string, voter:string):Promise<VoteEvent|undefined> {
+    const result = await stackerVotes.findOne({"proposalContractId":proposalContractId, "voter":voter})
+    return result as unknown as VoteEvent;
   }
   
   export async function findVotesByVoter(voter:string):Promise<any> {

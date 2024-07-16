@@ -5,17 +5,24 @@ import { FundingData, ProposalContract, ProposalData, ProposalMeta, ProposalStag
 import { getDaoConfig } from '../config_dao';
 import { countVotes, fetchLatestProposal } from './event_helper_voting_contract';
 import { stackerVotes, votingContractEventCollection } from '../data/db_models';
+import { getNet } from "@mijoco/stx_helpers/dist/index";
+import { sha256 } from "@noble/hashes/sha256";
+import { ripemd160 } from "@noble/hashes/ripemd160";
+import * as btc from '@scure/btc-signer';
+import { c32address } from 'c32check';
 
 export async function getSummary(proposalId:string):Promise<any> {
 
   const proposal = await fetchLatestProposal(proposalId)
   if (!proposal) return
 
-  console.log('getSummary: ' + getDaoConfig().VITE_DOA_DEPLOYER + '.' + proposalId)
+  console.log('getSummary: ' + proposal.proposal)
   //const soloFor = countsVotesByFilter({proposalContractId, for: true, event: 'solo-vote', amount: {$sum:1} })
   //const soloFor = stackerVotes.aggregate([{proposalContractId, for: true, event: 'solo-vote', $group: {sum_val:{$sum:"$amount"}}}]).toArray()
   const summaryWithZeros = await stackerVotes.aggregate([{$match: {proposalContractId: proposalId}},  { $group: {_id:{"event":"$event", "for":"$for"}, "total": {$sum: "$amount" }, count: {$sum:1} } } ]).toArray();
   
+  // db.stackerVotes.aggregate([{$match: {proposalContractId: 'SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.edp015-sip-activation', amount: { $gt: 0 }}}, { $group: {_id:{"event":"$event", "for":"$for"}, "total": {$sum: "$amount" }, "totalNested": {$sum: "$amountNested" }, count: {$sum:1} } } ])
+  // db.stackerVotes.aggregate([{$match: {proposalContractId: 'SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.bdp001-sip-021-nakamoto', amount: { $gt: 0 }}}, { $group: {_id:{"event":"$event", "for":"$for"}, "total": {$sum: "$amount" }, "totalNested": {$sum: "$amountNested" }, count: {$sum:1} } } ])
   const summary = await stackerVotes.aggregate([{$match: {proposalContractId: proposalId, amount: { $gt: 0 }}}, { $group: {_id:{"event":"$event", "for":"$for"}, "total": {$sum: "$amount" }, "totalNested": {$sum: "$amountNested" }, count: {$sum:1} } } ]).toArray();
   //const poolSummary = await stackerVotes.aggregate([ { $group: {_id:{"event":"pool-event", "for":"$for"}, "total": {$avg: "$stackerEvent.data.amountUstx" }, count: {$avg:1} } } ]).toArray();
                                               //[ { $group: {_id:{"event":"$event", "for":"$for"}, "total": {$sum: "$amount" }, count: {$sum:1} } } ]
@@ -104,6 +111,7 @@ export function getMetaData (source:string) {
   lines = lines?.filter((l) => l.startsWith(';;')) || []
   const proposalMeta = { dao: '', title: '', author: '', synopsis: '', description: '', };
   lines.forEach((l) => {
+    if (l === ';;' || l === ';; ') l = '<br/><br/>'
     l = l.replace(/;;/, "");
     if (l.indexOf('DAO:') > -1) proposalMeta.dao = l.split('DAO:')[1];
     else if (l.indexOf('Title:') > -1) proposalMeta.title = l.split('Title:')[1];
@@ -178,6 +186,41 @@ export async function getFundingParams(extensionCid:string):Promise<any> {
     proposalDuration: Number(proposalDuration),
     proposalStartDelay: Number(proposalStartDelay),
   }
+}
+
+export async function generateAddresses(proposalId:string) {
+
+  console.log('generateAddresses: ' + proposalId)
+  let encoder = new TextEncoder();
+  let encoded = encoder.encode(`Yes to ${proposalId}`);
+  let hash256 = sha256(encoded);
+  const hash160Y = ripemd160(hash256);
+
+  encoder = new TextEncoder();
+  encoded = encoder.encode(`No to ${proposalId}`);
+  hash256 = sha256(encoded);
+  const hash160N = ripemd160(hash256);
+
+  const net = getNet(getConfig().network);
+  
+  const p2shObjY = btc.p2sh({type:'sh', script: btc.Script.encode(['DUP', 'HASH160', hash160Y, 'EQUALVERIFY', 'CHECKSIG'])}, net)
+  const p2shObjN = btc.p2sh({type:'sh', script: btc.Script.encode(['DUP', 'HASH160', hash160N, 'EQUALVERIFY', 'CHECKSIG'])}, net)
+
+  console.log(p2shObjY.address)
+  console.log(p2shObjN.address)
+
+  const netPrefix = (getConfig().network === 'testnet') ? 26 : 22;
+  const yStxAddress = c32address(netPrefix, hex.encode(hash160Y))
+  const nStxAddress = c32address(netPrefix, hex.encode(hash160N))
+
+  const votingAddresses = {
+    yBtcAddress: p2shObjY.address as string,
+    nBtcAddress: p2shObjN.address as string,
+    yStxAddress,
+    nStxAddress,
+  }
+  console.log('generateAddresses: ', votingAddresses)
+  return votingAddresses;
 }
 
 

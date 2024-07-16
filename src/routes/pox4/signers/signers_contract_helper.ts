@@ -1,8 +1,7 @@
 import { serializeCV, uintCV } from "@stacks/transactions";
 import { getConfig } from "../../../lib/config";
 import { hex } from '@scure/base';
-import { getPoxInfo } from "../pox-contract/pox_contract_helper";
-import { StackerDbConfig, callContractReadOnly } from "@mijoco/stx_helpers/dist/index";
+import { StackerDbConfig, callContractReadOnly, getPoxInfo } from "@mijoco/stx_helpers/dist/index";
 
 export async function getSigners(cycle:number):Promise<any> {
   const functionArgs = [`0x${hex.encode(serializeCV(uintCV(cycle)))}`];
@@ -30,7 +29,7 @@ export async function getSigners(cycle:number):Promise<any> {
 }
 
 export async function getSignersRecent():Promise<any> {
-  const poxInfo = await getPoxInfo()
+  const poxInfo = await getPoxInfo(getConfig().stacksApi)
   const currentCycle = poxInfo.current_cycle.id;
   return {
     current: {

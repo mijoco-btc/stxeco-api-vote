@@ -1,13 +1,43 @@
 import express from "express";
-import { fetchTentativeProposals, fetchTentativeProposalsActive, findTentativeProposalByContractId, stripNonSipResults } from "../../lib/data/db_models";
-import { getProposalsFromContractIds } from "../dao/dao_helper";
-import { FundingData, TentativeProposal, VotingEventProposeProposal } from "@mijoco/stx_helpers";
+import { FundingData, TentativeProposal, VotingEventProposeProposal, lookupContract } from "@mijoco/stx_helpers/dist/index";
 import { fetchByBaseDaoEvent } from "../../lib/events/event_helper_base_dao";
-import { fetchAllProposeEvents, fetchLatestProposal } from "../../lib/events/event_helper_voting_contract";
-import { getFunding } from "../../lib/events/proposal";
+import { fetchActiveProposeEvents, fetchAllConcludedEvents, fetchAllProposeEvents, fetchLatestProposal, fetchProposeEvent, toggleSipStatus, updateStackerData } from "../../lib/events/event_helper_voting_contract";
+import { generateAddresses, getFunding, getMetaData } from "../../lib/events/proposal";
+import { fetchTentativeProposals, findTentativeProposalByContractId, saveOrUpdateProposal, saveOrUpdateTentativeProposal } from "../../lib/data/db_models";
+import { getConfig } from "../../lib/config";
 
 const router = express.Router();
 
+
+router.get("/generate-addresses/:proposalId", async (req, res, next) => {
+  try {
+    const extensions = await generateAddresses(req.params.proposalId)
+    return res.send(extensions);
+  } catch (error) {
+    console.log('Error in routes: ', error)
+    next('An error occurred fetching pox-info.')
+  }
+});
+
+router.get("/generate-stacker-data/:sip/:proposalId", async (req, res, next) => {
+  try {
+    const proposal = await updateStackerData(Boolean(req.params.sip), req.params.proposalId)
+    return res.send(proposal);
+  } catch (error) {
+    console.log('Error in routes: ', error)
+    next('An error occurred fetching pox-info.')
+  }
+});
+
+router.get("/toggle-sip-status/:proposalId", async (req, res, next) => {
+  try {
+    const proposal = await toggleSipStatus(req.params.proposalId)
+    return res.send(proposal);
+  } catch (error) {
+    console.log('Error in routes: ', error)
+    next('An error occurred fetching pox-info.')
+  }
+});
 
 router.get("/get-executed-proposals/:daoContract", async (req, res, next) => {
   try {
@@ -39,42 +69,78 @@ router.get("/get-funding/:submissionContract/:proposalContract", async (req, res
   }
 });
 
-router.get("/sync/proposal/:contractIds", async (req, res, next) => {
+router.get("/all-proposals", async (req, res, next) => {
   try {
-    const props = await getProposalsFromContractIds(req.params.contractIds);
-    return res.send(props);
-  } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching sbtc data.')
-  }
-});
-
-router.get("/tentative-proposals/:contractId", async (req, res, next) => {
-  let response:TentativeProposal = await findTentativeProposalByContractId(req.params.contractId);;
-  if (!response) res.sendStatus(404);
-  return res.send(response);
-});
-
-router.get("/tentative-proposals?:active", async (req, res, next) => {
-  try {
-    let response:Array<TentativeProposal>;
-    if (req.query.active) {
-      console.log('active=' + req.query.active)
-      response = await fetchTentativeProposalsActive();
-      console.log('active=' + response)
-    } else {
-      console.log('active=' + req.query.active)
-      response = await fetchTentativeProposals();
-    }
-    return res.send(response);
+    const proposals = await fetchAllProposeEvents();
+    return res.send(proposals);
   } catch (error) {
     return res.send([]);
   }
 });
 
-router.get("/all-proposals", async (req, res, next) => {
+router.get("/tentative-proposals", async (req, res, next) => {
   try {
-    const proposals = await fetchAllProposeEvents();
+    const proposals = await fetchTentativeProposals();
+    const tps = []
+    for (const p of proposals) {
+      // exclude proposed proposals
+      const proposedProp = await fetchProposeEvent(p.proposal)
+      if (!proposedProp) tps.push(p)
+    }
+    return res.send(tps);
+  } catch (error) {
+    return res.send([]);
+  }
+});
+
+router.get("/get-tentative-proposal/:proposalId", async (req, res, next) => {
+  try {
+    const proposal = await findTentativeProposalByContractId(req.params.proposalId);
+    return res.send(proposal);
+  } catch (error) {
+    return res.send([]);
+  }
+});
+
+router.get("/create-tentative-proposal/:start/:end/:proposalId", async (req, res, next) => {
+  try {
+    const deployed = await lookupContract(getConfig().stacksApi, req.params.proposalId)
+    console.log('deployed: ', deployed)
+    if (!deployed)  res.sendStatus(404);
+    const tentativeproposal = {
+      tag: req.params.proposalId,
+      visible: true,
+      proposalMeta: getMetaData(deployed.source_code),
+      expectedStart: Number(req.params.start),
+      expectedEnd: Number(req.params.end),
+      stacksDeployHeight: deployed.block_height,
+      info: undefined,
+      submissionData: {
+        contractId: req.params.proposalId,
+        transaction: deployed.tx_id
+      },
+      proposer: undefined,
+      votingContract: undefined,
+    }  as TentativeProposal
+    await saveOrUpdateTentativeProposal(tentativeproposal)
+    return res.send(tentativeproposal);
+  } catch (error) {
+    return res.send([]);
+  }
+});
+
+router.get("/active-proposals", async (req, res, next) => {
+  try {
+    const proposals = await fetchActiveProposeEvents();
+    return res.send(proposals);
+  } catch (error) {
+    return res.send([]);
+  }
+});
+
+router.get("/concluded-proposals", async (req, res, next) => {
+  try {
+    const proposals = await fetchAllConcludedEvents();
     return res.send(proposals);
   } catch (error) {
     return res.send([]);

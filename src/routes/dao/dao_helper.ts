@@ -4,7 +4,7 @@
 import { stringAsciiCV, cvToJSON, deserializeCV, contractPrincipalCV, serializeCV, principalCV, uintCV } from '@stacks/transactions';
 import { hex } from '@scure/base';
 import { getConfig } from '../../lib/config';
-import { fetchTentativeProposals, findProposalByContractId, saveOrUpdateProposal } from '../../lib/data/db_models';
+import { findProposalByContractId, saveOrUpdateProposal } from '../../lib/data/db_models';
 import { getDaoConfig } from '../../lib/config_dao';
 import { countsVotesByMethod, saveOrUpdateVote } from './vote_count_helper';
 import { FundingData, GovernanceData, NFTHolding, NFTHoldings, ProposalContract, ProposalData, ProposalEvent, ProposalStage, SignalData, SubmissionData, TentativeProposal, VoteEvent, VotingEventProposeProposal, callContractReadOnly, fetchDataVar } from '@mijoco/stx_helpers/dist/index';
@@ -274,17 +274,6 @@ async function innerProposalsForActiveVotingExt(url:string, currentOffset:number
     }
   }
   return val.results?.length > 0 || false
-}
-
-export async function getProposalsFromContractIds(proposalContractIds:string):Promise<any> {
-  const tProps:Array<TentativeProposal> = await fetchTentativeProposals()
-  const proposalCids = proposalContractIds.split(',')
-  const props = []
-  for (const tProp of tProps) {
-    const p = await getProposalFromContractId(tProp.tag)
-    props.push(p)
-  }
-  return props
 }
 
 export async function getProposalFromContractId(contractId:string):Promise<ProposalEvent|undefined> {

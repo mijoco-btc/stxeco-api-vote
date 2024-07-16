@@ -1,19 +1,12 @@
 import { hex } from '@scure/base';
 import * as btc from '@scure/btc-signer';
 import { getConfig } from "../../../lib/config";
-import { getNumbEntriesRewardCyclePoxList, getPoxCycleInfo, getPoxInfo, getStackerInfoFromContract, getRewardSetPoxAddress } from "../pox-contract/pox_contract_helper";
 import { burnHeightToRewardCycle, getRewardsByAddress } from "./reward_slot_helper";
 import { pox4AddressInfoCollection } from '../../../lib/data/db_models';
 import { findPoolStackerEventsByHashBytesAndVersion, findPoolStackerEventsByStacker } from '../pox-events/pox4_events_helper';
-import { PoolStackerEvent, PoxAddress, PoxEntry, StackerInfo, StackerStats } from '@mijoco/stx_helpers/dist/index';
-
-const ADDRESS_VERSION_P2PKH =new Uint8Array([0])
-const ADDRESS_VERSION_P2SH = new Uint8Array([1])
-const ADDRESS_VERSION_P2WPKH = new Uint8Array([2])
-const ADDRESS_VERSION_P2WSH = new Uint8Array([3])
-const ADDRESS_VERSION_NATIVE_P2WPKH = new Uint8Array([4])
-const ADDRESS_VERSION_NATIVE_P2WSH = new Uint8Array([5])
-const ADDRESS_VERSION_NATIVE_P2TR = new Uint8Array([6])
+import { getPoxInfo, PoolStackerEvent, PoxAddress, PoxEntry, StackerInfo, StackerStats } from '@mijoco/stx_helpers/dist/index';
+import { getNumbEntriesRewardCyclePoxList, getPoxCycleInfo, getRewardSetPoxAddress, getStackerInfoFromContract } from '@mijoco/stx_helpers/dist/pox/pox';
+import { getHashBytesFromAddress } from '@mijoco/btc_helpers/dist/index';
 
 export async function collatePoolStackerInfo(address:string, cycle:number):Promise<StackerStats> {
   const addressType = 'stacks'
@@ -23,8 +16,8 @@ export async function collatePoolStackerInfo(address:string, cycle:number):Promi
   const stackerEventsAsDelegator:Array<PoolStackerEvent> = await findPoolStackerEventsByStacker(address)
   const stackerInfo:Array<StackerInfo> = [];
 
-  const stackerInfoPerCycle = (await getStackerInfoFromContract(address, cycle)) as StackerInfo;
-  stackerInfoPerCycle.cycleInfo = await getPoxCycleInfo(cycle);
+  const stackerInfoPerCycle = (await getStackerInfoFromContract(getConfig().stacksApi, getConfig().network, getConfig().poxContractId!, address, cycle)) as StackerInfo;
+  stackerInfoPerCycle.cycleInfo = await getPoxCycleInfo(getConfig().stacksApi, getConfig().poxContractId!, cycle);
   countEntries(cycle, stackerInfoPerCycle)
   stackerInfo.push(stackerInfoPerCycle)
 
@@ -83,7 +76,7 @@ export async function extractAllPoxEntriesInCycle(address:string, cycle:number) 
   for (const entry of newEntries) {
     try {
       if (entry.stacker) {
-        const stackerInfoPerCycle = (await getStackerInfoFromContract(entry.stacker, entry.cycle));
+        const stackerInfoPerCycle = (await getStackerInfoFromContract(getConfig().stacksApi, getConfig().network, getConfig().poxContractId!, entry.stacker, entry.cycle));
         if (stackerInfoPerCycle?.stacker?.rewardSetIndexes) {
           entry.poxStackerInfo = await countEntries(entry.cycle, stackerInfoPerCycle)
         }
@@ -109,7 +102,7 @@ export async function collateSoloStackerInfo(address:string, cycle:number):Promi
   poxEntries = poxEntries.concat(poxEntries1)
   let stackerEvents:Array<PoolStackerEvent> = []
   let stackerEventsAsDelegator:Array<PoolStackerEvent> = [];
-  const hashBytes = getHashBytesFromAddress(voterProxy)
+  const hashBytes = getHashBytesFromAddress(getConfig().network, voterProxy)
 
   let stackerEventsAsPoxAddress:Array<PoolStackerEvent>|undefined = undefined;
   if (hashBytes) stackerEventsAsPoxAddress = await findPoolStackerEventsByHashBytesAndVersion(hashBytes.version, hashBytes.hashBytes, 0, 100);
@@ -143,11 +136,11 @@ export async function collateStackerInfo(address:string, cycle:number):Promise<S
 
 export async function readPoxEntriesFromContract(cycle:number):Promise<any> {
   if (cycle <= 0) {
-    const poxInfo = await getPoxInfo();
-    const blockHeight = poxInfo.burn_block_height
+    const poxInfo = await getPoxInfo(getConfig().stacksApi);
+    const blockHeight = poxInfo.current_burnchain_block_height
     cycle = burnHeightToRewardCycle(blockHeight, poxInfo) + cycle;
   }
-  const len = await getNumbEntriesRewardCyclePoxList(cycle)
+  const len = await getNumbEntriesRewardCyclePoxList(getConfig().stacksApi, getConfig().poxContractId!, cycle)
   let offset = 0
   try {
     const o = await findLastPoxEntryByCycle(cycle)
@@ -199,34 +192,6 @@ export function getAddressFromHashBytes(hashBytes:string, version:string) {
   return btcAddr
 }
 
-export function getHashBytesFromAddress(address:string):{version:string, hashBytes:string }|undefined {
-  const net = (getConfig().network === 'testnet') ? btc.TEST_NETWORK : btc.NETWORK
-  let outScript:any;
-  try {
-    const addr:any = btc.Address(net);
-    //const outScript = btc.OutScript.encode(addr.decode(address));
-    const s = btc.OutScript.encode(addr.decode(address))
-    const outScript = btc.OutScript.decode(s);
-    if (outScript.type === "ms") {
-      return
-    } else if (outScript.type === "pkh") {
-      return { version: hex.encode(ADDRESS_VERSION_P2PKH), hashBytes: hex.encode(outScript.hash) }
-    } else if (outScript.type === "sh") {
-      return { version: hex.encode(ADDRESS_VERSION_P2SH), hashBytes: hex.encode(outScript.hash) }
-    } else if (outScript.type === "wpkh") {
-      return { version: hex.encode(ADDRESS_VERSION_NATIVE_P2WPKH), hashBytes: hex.encode(outScript.hash) }
-    } else if (outScript.type === "wsh") {
-      return { version: hex.encode(ADDRESS_VERSION_NATIVE_P2WSH), hashBytes: hex.encode(outScript.hash) }
-    } else if (outScript.type === "tr") {
-      return { version: hex.encode(ADDRESS_VERSION_NATIVE_P2TR), hashBytes: hex.encode(outScript.pubkey) }
-    }
-    return
-  } catch (err:any) {
-    console.error('getPartialStackedByCycle: ' + outScript)
-  }
-  return
-}
-
 export async function readSavePoxEntries(cycle:number, len:number, offset:number):Promise<any> {
     const entries = []
     let poxEntry:PoxEntry;
@@ -237,7 +202,7 @@ export async function readSavePoxEntries(cycle:number, len:number, offset:number
       //}
       let poxAddr:PoxAddress = {} as PoxAddress;
       try {
-        const entry = await getRewardSetPoxAddress(cycle, i)
+        const entry = await getRewardSetPoxAddress(getConfig().stacksApi, getConfig().poxContractId!, cycle, i)
         if (entry) {
           poxAddr = {
             version: entry['pox-addr'].value.version.value, 

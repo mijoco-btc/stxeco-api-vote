@@ -4,6 +4,7 @@ import { getDaoVotingSummary } from "../../lib/events/proposal";
 
 const router = express.Router();
 
+
 router.get("/read-votes/:genesis/:daoContract/:votingContract", async (req, res, next) => {
   try {
     readVotingEvents(Boolean(req.params.genesis), req.params.daoContract, req.params.votingContract);

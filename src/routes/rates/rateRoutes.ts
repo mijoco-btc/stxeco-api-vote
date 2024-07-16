@@ -35,7 +35,7 @@ export { router as rateRoutes }
 
 // Exchange Rates 
 export async function delExchangeRates () {
-	await exchangeRatesCollection.deleteMany();
+	//await exchangeRatesCollection.deleteMany();
 	return;
 }
 export async function setExchangeRates (ratesObj:any) {

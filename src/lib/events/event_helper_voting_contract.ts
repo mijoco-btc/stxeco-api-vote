@@ -2,11 +2,40 @@
  * sbtc - interact with Stacks Blockchain to read sbtc contract info
  */
 import { cvToJSON, deserializeCV } from '@stacks/transactions';
-import { VotingEventVoteOnProposal, VotingEventConcludeProposal, VotingEventProposeProposal, ExtensionType, SubmissionData, getTransaction, ProposalContract } from '@mijoco/stx_helpers/dist/index';
+import { VotingEventVoteOnProposal, VotingEventConcludeProposal, VotingEventProposeProposal, ExtensionType, SubmissionData, getTransaction, ProposalContract, StackerProposalData } from '@mijoco/stx_helpers/dist/index';
 import { getConfig } from '../config';
 import { votingContractEventCollection } from '../data/db_models';
 import { getDaoConfig } from '../config_dao';
-import { getMetaData, getProposalContractSource, getProposalData } from './proposal';
+import { generateAddresses, getMetaData, getProposalContractSource, getProposalData } from './proposal';
+import { ObjectId } from 'mongodb';
+
+export async function updateStackerData(sip:boolean, proposalId:string) {
+  const proposal:VotingEventProposeProposal = await fetchProposeEvent(proposalId)
+  if (!proposal) throw new Error('Proposal ' + proposalId + ' not found')
+  const addressInfo = await generateAddresses(proposal.proposalMeta.title)
+  console.log('updateStackerData: ', addressInfo)
+  if (!proposal.stackerData) {
+    proposal.stackerData = {} as StackerProposalData
+  }
+  proposal.stackerData.sip = Boolean(sip)
+  if (!proposal.stackerData.stacksAddressYes) proposal.stackerData.stacksAddressYes = addressInfo.yStxAddress
+  if (!proposal.stackerData.stacksAddressNo) proposal.stackerData.stacksAddressNo = addressInfo.nStxAddress
+  if (!proposal.stackerData.bitcoinAddressYes) proposal.stackerData.bitcoinAddressYes = addressInfo.yBtcAddress
+  if (!proposal.stackerData.bitcoinAddressNo) proposal.stackerData.bitcoinAddressNo = addressInfo.nBtcAddress
+  await updateDaoEvent(proposal._id, proposal)
+  return proposal
+}
+
+export async function toggleSipStatus(proposalId:string) {
+  const proposal:VotingEventProposeProposal = await fetchProposeEvent(proposalId)
+  if (!proposal) throw new Error('Proposal ' + proposalId + ' not found')
+  if (!proposal.stackerData) {
+    proposal.stackerData = {} as StackerProposalData
+  }
+  proposal.stackerData.sip = !proposal.stackerData?.sip || true
+  await updateDaoEvent(proposal._id, proposal)
+  return proposal
+}
 
 
 export async function scanVoting(genesis:boolean)  {
@@ -15,7 +44,9 @@ export async function scanVoting(genesis:boolean)  {
   } catch (err) {
     console.log('Error running: ede007-snapshot-proposal-voting: ', err);
   }
-  for (const vc of getDaoConfig().VITE_DOA_VOTING_CONTRACTS.split(',')) {
+  const vcs = getDaoConfig().VITE_DOA_VOTING_CONTRACTS.split(',')
+  console.log('scanVoting: votingContracts ' + getDaoConfig().VITE_DOA_VOTING_CONTRACTS)
+  for (const vc of vcs) {
     try {
       await readVotingEvents(genesis, `${getDaoConfig().VITE_DOA_DEPLOYER}.bitcoin-dao`, `${getDaoConfig().VITE_DOA_DEPLOYER}.${vc}`)
     } catch (err) {
@@ -25,6 +56,7 @@ export async function scanVoting(genesis:boolean)  {
 }
 
 export async function readVotingEvents(genesis:boolean, daoContract:string, votingContract:string) {
+  console.log('VotingContractEvents: votingContract ' + votingContract)
   const url = getConfig().stacksApi + '/extended/v1/contract/' + votingContract + '/events?limit=20';
   const extensions: Array<ExtensionType> = [];
   let currentOffset = 0
@@ -62,7 +94,7 @@ async function resolveExtensionEvents(url:string, currentOffset:number, count:nu
   console.log('VotingContractEvents: processing ' + (val?.results?.length || 0) + ' events from ' + urlOffset)
   //console.log('resolveExtensionEvents: val: ', val)
   for (const event of val.results) {
-    const pdb = await findVotingContractEventByContractAndIndex(daoContract, votingContract, Number(event.event_index), event.tx_id)
+    const pdb = await findVotingContractEventByContractAndIndex(votingContract, Number(event.event_index), event.tx_id)
     if (!pdb) {
       try {
         processEvent(event, daoContract, votingContract)
@@ -85,6 +117,7 @@ async function processEvent(event:any, daoContract:string, votingContract:string
     let contract:ProposalContract = await getProposalContractSource(proposal)
     //console.log('resolveExtensionEvents: execute: ', util.inspect(event, false, null, true /* enable colors */))
     const votingContractEvent = {
+      _id: new ObjectId(),
       event: 'propose',
       event_index: Number(event.event_index),
       txId: event.tx_id,
@@ -99,11 +132,13 @@ async function processEvent(event:any, daoContract:string, votingContract:string
     } as VotingEventProposeProposal
     console.log('processEvent: votingContractEvent', votingContractEvent)
     await saveOrUpdateEvent(votingContractEvent)
+    await updateStackerData(false, proposal)
 
   } else if (result.value.event.value === 'vote') {
 
     //console.log('resolveExtensionEvents: extension: ', util.inspect(event, false, null, true /* enable colors */))
     const votingContractEvent = {
+      _id: new ObjectId(),
       event: 'vote',
       event_index: Number(event.event_index),
       txId: event.tx_id,
@@ -123,6 +158,7 @@ async function processEvent(event:any, daoContract:string, votingContract:string
     const proposal = result.value.proposal.value
     let contract:ProposalContract = await getProposalContractSource(proposal)
     const votingContractEvent = {
+      _id: new ObjectId(),
       event: 'conclude',
       event_index: Number(event.event_index),
       txId: event.tx_id,
@@ -217,6 +253,19 @@ export async function fetchAllProposeEvents():Promise<any> {
 	const result = await votingContractEventCollection.find({event: 'propose'}).toArray();
 	return result;
 }
+export async function fetchActiveProposeEvents():Promise<any> {
+  const activePs = []
+	const results = await votingContractEventCollection.find({event: 'propose'}).toArray();
+  for (const res of results) {
+    const cp = await fetchConcludeEvent(res.proposal);
+    if (!cp) activePs.push(res)
+  }
+	return activePs;
+}
+export async function fetchAllConcludedEvents():Promise<any> {
+	const result = await votingContractEventCollection.find({event: 'conclude'}).toArray();
+	return result;
+}
 export async function fetchLatestProposal(proposalId:string):Promise<any> {
   const proposal:VotingEventProposeProposal = await fetchProposeEvent(proposalId)
   const pd = await getProposalData(proposal.votingContract, proposal.proposal)
@@ -227,8 +276,12 @@ export async function findVotingContractEventByTxId(txId:string):Promise<any> {
 	const result = await votingContractEventCollection.findOne({"txId":txId});
 	return result;
 }
-export async function findVotingContractEventByContractAndIndex(daoContract:string, votingContract:string, event_index:number, txId:string):Promise<any> {
-	const result = await votingContractEventCollection.findOne({daoContract, votingContract, event_index, txId});
+export async function findVotingContractEventByContractAndIndex(votingContract:string, event_index:number, txId:string):Promise<any> {
+	const result = await votingContractEventCollection.findOne({votingContract, event_index, txId});
+	return result;
+}
+export async function findVotingContractEventById(id:string):Promise<any> {
+	const result = await votingContractEventCollection.findOne({_id: new ObjectId(id)});
 	return result;
 }
 async function deleteVotingContractEvent(tp:VotingEventVoteOnProposal|VotingEventConcludeProposal|VotingEventProposeProposal):Promise<any> {
@@ -247,11 +300,11 @@ export async function getProposals():Promise<Array<VotingEventProposeProposal>> 
 
 async function saveOrUpdateEvent(votingContractEvent:VotingEventVoteOnProposal|VotingEventConcludeProposal|VotingEventProposeProposal) {
 	try {
-		const pdb = await findVotingContractEventByContractAndIndex(votingContractEvent.daoContract, votingContractEvent.votingContract, votingContractEvent.event_index, votingContractEvent.txId)
+		const pdb = await findVotingContractEventByContractAndIndex(votingContractEvent.votingContract, votingContractEvent.event_index, votingContractEvent.txId)
 		console.log('saveOrUpdateEvent: pdb', pdb)
 		if (pdb) {
 			console.log('saveOrUpdateEvent: updating: ' + votingContractEvent.votingContract + ' / ' + votingContractEvent.event + ' / ' + votingContractEvent.event_index + ' / ' + votingContractEvent.txId);
-			await updateDaoEvent(pdb, votingContractEvent)
+			await updateDaoEvent(votingContractEvent._id, votingContractEvent)
 		} else {
 			console.log('saveOrUpdateEvent: saving: ' + votingContractEvent.votingContract + ' / ' + votingContractEvent.event + ' / ' + votingContractEvent.event_index + ' / ' + votingContractEvent.txId);
 			await saveDaoEvent(votingContractEvent)
@@ -261,14 +314,14 @@ async function saveOrUpdateEvent(votingContractEvent:VotingEventVoteOnProposal|V
 	}
 }
 async function saveDaoEvent(proposal:VotingEventVoteOnProposal|VotingEventConcludeProposal|VotingEventProposeProposal) {
-	const result = await votingContractEventCollection.insertOne(proposal);
+  proposal._id = new ObjectId()
+  const result = await votingContractEventCollection.insertOne(proposal);
 	return result;
 }
 
-async function updateDaoEvent(event:VotingEventVoteOnProposal|VotingEventConcludeProposal|VotingEventProposeProposal, changes: any) {
+async function updateDaoEvent(_id:ObjectId, changes: VotingEventVoteOnProposal|VotingEventConcludeProposal|VotingEventProposeProposal) {
 	const result = await votingContractEventCollection.updateOne({
-		daoContract: event.daoContract,
-		event_index: event.event_index
+		_id: new ObjectId(_id)
 	},
   { $set: changes});
 	return result;

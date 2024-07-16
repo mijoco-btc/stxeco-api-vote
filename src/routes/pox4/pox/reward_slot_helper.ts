@@ -1,7 +1,6 @@
-import { PoxInfo, RewardSlot } from '@mijoco/stx_helpers/dist/index';
+import { getPoxInfo, PoxInfo, RewardSlot } from '@mijoco/stx_helpers/dist/index';
 import { getConfig } from '../../../lib/config';
 import { pox4RewardSlotHolders } from '../../../lib/data/db_models';
-import { getPoxInfo } from '../pox-contract/pox_contract_helper';
 
 const limit = 250;
 let depth = 6000;
@@ -20,7 +19,7 @@ export function startSlot() {
 }
 
 export async function readAllRewardSlots() {
-  const poxInfo = await getPoxInfo()
+  const poxInfo = await getPoxInfo(getConfig().stacksApi)
   let val;
   let runningTotal = 0;
   let count = 0;

@@ -13,7 +13,7 @@ export let stackerVotes:Collection;
 export let delegationEvents:Collection; 
 export let rewardSlotHolders:Collection;
 export let poxAddressInfo:Collection;
-export let daoMongoConfig:Collection;
+//export let daoMongoConfig:Collection;
 export let poolStackerEventsCollection:Collection;
 export let pox4EventsCollection:Collection;
 export let pox4RewardSlotHolders:Collection;
@@ -53,11 +53,11 @@ export async function connect() {
 	exchangeRatesCollection = database.collection('exchangeRatesCollection');
 	await exchangeRatesCollection.createIndex({currency: 1}, { unique: true })
 	
-	proposals = database.collection('proposals');
-	await proposals.createIndex({contractId: 1}, { unique: true })
+	//proposals = database.collection('proposals');
+	//await proposals.createIndex({contractId: 1}, { unique: true })
 	
 	tentativeProposalCollection = database.collection('tentativeProposalCollection');
-	//await tentativeProposalCollection.createIndex({contractId: 1}, { unique: true })
+	await tentativeProposalCollection.createIndex({contractId: 1}, { unique: true })
 	
 	daoEventCollection = database.collection('daoEventCollection');
 	await daoEventCollection.createIndex({daoContract: 1, event_index: 1, txId: 1}, { unique: true })
@@ -67,9 +67,10 @@ export async function connect() {
 	
 	stackerVotes = database.collection('stackerVotes');
 	await stackerVotes.createIndex({submitTxId: 1}, { unique: true })
+	await stackerVotes.createIndex({proposalContractId: 1, voter: 1}, { unique: true })
 	
-	daoMongoConfig = database.collection('daoMongoConfig');
-	await daoMongoConfig.createIndex({configId: 1}, { unique: true })
+	//daoMongoConfig = database.collection('daoMongoConfig');
+	//await daoMongoConfig.createIndex({configId: 1}, { unique: true })
 	
 	rewardSlotHolders = database.collection('rewardSlotHolders');
 	await rewardSlotHolders.createIndex({address: 1, slot_index: 1, burn_block_height: 1}, { unique: true })
@@ -78,21 +79,31 @@ export async function connect() {
 	delegationEvents = database.collection('delegationEvents');
 	poolStackerEventsCollection = database.collection('poolStackerEventsCollection');
 
-	pox4EventsCollection = database.collection('pox4EventsCollection');
+	//pox4EventsCollection = database.collection('pox4EventsCollection');
 	//await pox4EventsCollection.createIndex({eventIndex: 1, event: 1}, { unique: true })
 
-	pox4RewardSlotHolders = database.collection('pox4RewardSlotHolders');
-	await pox4RewardSlotHolders.createIndex({txId: 1}, { unique: true })
+	//pox4RewardSlotHolders = database.collection('pox4RewardSlotHolders');
+	//await pox4RewardSlotHolders.createIndex({txId: 1}, { unique: true })
 
-	pox4AddressInfoCollection = database.collection('pox4AddressInfoCollection');
-	pox4BitcoinStacksTxCollection = database.collection('pox4BitcoinStacksTxCollection');
-	await pox4BitcoinStacksTxCollection.createIndex({txId: 1}, { unique: true })
+	//pox4AddressInfoCollection = database.collection('pox4AddressInfoCollection');
+	//pox4BitcoinStacksTxCollection = database.collection('pox4BitcoinStacksTxCollection');
+	//await pox4BitcoinStacksTxCollection.createIndex({txId: 1}, { unique: true })
 
 	//const rates = await getExchangeRates(); // test connections
 	//console.log(rates)
 }
 
 
+
+export function stripNonSipResults(response:Array<any>) {
+	for (const cId of getDaoConfig().VITE_DOA_SIP_VOTES.split(',')) {
+		const index = response.findIndex((o:any) => o.tag === cId.trim());
+		if (index > -1) {
+			response.splice(index, 1);
+		}
+	}
+	return response;
+}
 
 
 // Compile model from schema
@@ -122,16 +133,6 @@ export async function updateTentativeProposal(proposal:any, changes: any) {
 	return result;
 }
 
-export function stripNonSipResults(response:Array<any>) {
-	for (const cId of getDaoConfig().VITE_DOA_SIP_VOTES.split(',')) {
-		const index = response.findIndex((o:any) => o.tag === cId.trim());
-		if (index > -1) {
-			response.splice(index, 1);
-		}
-	}
-	return response;
-}
-
 export async function fetchTentativeProposals():Promise<any> {
 	const result = await tentativeProposalCollection.find({}).toArray();
 	return result;
@@ -148,7 +149,6 @@ export async function findTentativeProposalByContractId(contractId:string):Promi
 	const result = await tentativeProposalCollection.findOne({"tag":contractId});
 	return result;
 }
-
 
 export async function saveOrUpdateProposal(p:ProposalEvent) {
 	try {

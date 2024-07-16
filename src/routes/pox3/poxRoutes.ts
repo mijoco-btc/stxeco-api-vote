@@ -1,7 +1,6 @@
 import express from "express";
 import { findRewardSlotByAddress, findRewardSlotByAddressMinHeight, findRewardSlotByCycle, getRewardsByAddress, readAllRewardSlots, readRewardSlots } from "./reward_slot_helper";
-import { collateStackerInfo, extractAllPoxEntriesInCycle, findPoxEntriesByAddress, findPoxEntriesByAddressAndCycle, findPoxEntriesByCycle, getAddressFromHashBytes, getHashBytesFromAddress, readPoxEntriesFromContract, readSavePoxEntries } from "./pox_helper";
-import { getAllowanceContractCallers, getPoxBitcoinAddressInfo, getPoxCycleInfo, getPoxInfo, getStackerInfoFromContract, getRewardSetPoxAddress } from "./pox_contract_helper";
+import { collateStackerInfo, extractAllPoxEntriesInCycle, findPoxEntriesByAddress, findPoxEntriesByCycle, getAddressFromHashBytes, getHashBytesFromAddress, readPoxEntriesFromContract, readSavePoxEntries } from "./pox_helper";
 import { readDelegationEvents } from "./delegation_helper";
 import { findPoolStackerEventsByDelegator, findPoolStackerEventsByHashBytes, findPoolStackerEventsByStacker, findPoolStackerEventsByStackerAndEvent, readPoolStackerEvents } from "./pool_stacker_events_helper";
 import { getConfig } from "../../lib/config";
@@ -120,7 +119,7 @@ router.get("/stacker/:stxAddress/:cycle", async (req, res, next) => {
     const stxAddress = req.params.stxAddress
     let response:any = {};
     response = await getStackerInfoFromContract(stxAddress, Number(req.params.cycle));
-    response.cycleInfo = await getPoxCycleInfo(Number(req.params.cycle));
+    response.cycleInfo = await getPoxCycleInfo(getConfig().stacksApi, getConfig().pox4ContractId, Number(req.params.cycle));
     console.log(response)
     return res.send(response);
   } catch (error) {

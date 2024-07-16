@@ -7,15 +7,14 @@ import { getPoolTransactions } from "./pool_votes";
 import { fetchAddressTransactions } from "@mijoco/btc_helpers/dist/index";
 import { getConfig } from "../../lib/config";
 import { getDaoConfig } from "../../lib/config_dao";
-import { fetchByBaseDaoEvent } from "../../lib/events/event_helper_base_dao";
+import { fetchBaseDaoEvents, fetchByBaseDaoEvent, readDaoEvents } from "../../lib/events/event_helper_base_dao";
 import { isExtension } from "../../lib/events/extension";
 
 const router = express.Router();
 
-/**
 router.get("/read-events-base-dao/:daoContractId", async (req, res, next) => {
   try {
-    await readDaoEvents(false, req.params.daoContractId)
+    await readDaoEvents(true, req.params.daoContractId)
     console.log('processEvent: all events: ' + req.params.daoContractId)
     return await fetchBaseDaoEvents()
   } catch (error) {
@@ -23,6 +22,7 @@ router.get("/read-events-base-dao/:daoContractId", async (req, res, next) => {
     next('An error occurred fetching pox-info.')
   }
 });
+/**
 router.get("/read-events-voting-extension/:votingExtension", async (req, res, next) => {
   try {
     getProposalsForActiveVotingExt(req.params.votingExtension);
@@ -167,16 +167,6 @@ router.get("/results/solo-multisig/:address", async (req, res, next) => {
   try {
     const vote = await analyseMultisig(req.params.address);
     return res.send(vote);
-  } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching pox-info.')
-  }
-});
-
-router.get("/results/non-stackers/:proposalId", async (req, res, next) => {
-  try {
-    const daoVotes = await findVotesByProposalAndMethod(req.params.proposalId, 'vote');
-    return res.send({daoVotes});
   } catch (error) {
     console.log('Error in routes: ', error)
     next('An error occurred fetching pox-info.')

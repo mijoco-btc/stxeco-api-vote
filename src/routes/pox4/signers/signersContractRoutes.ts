@@ -1,7 +1,8 @@
 import express from "express";
 import { getSigners, getSignersRecent, stackerdbGetConfig, stackerdbGetSignerSlotsPage } from "./signers_contract_helper";
-import { verifySignerKeySig } from "../pox-contract/pox_contract_helper";
 import { VerifySignerKey } from "@mijoco/stx_helpers/dist/index";
+import { verifySignerKeySig } from "@mijoco/stx_helpers/dist/pox/pox";
+import { getConfig } from "../../../lib/config";
 
 const router = express.Router();
 
@@ -50,7 +51,7 @@ router.post("/verify-signer-key-sig", async (req, res, next) => {
   try {
     const auth = req.body as VerifySignerKey;
 
-    const result = await verifySignerKeySig(auth) ;
+    const result = await verifySignerKeySig(getConfig().stacksApi, getConfig().network, getConfig().poxContractId!, auth) ;
     return res.send(result);
   } catch (error) {
     console.log('Error in routes: ', error)

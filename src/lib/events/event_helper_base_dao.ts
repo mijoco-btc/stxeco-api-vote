@@ -37,7 +37,12 @@ async function resolveExtensionEvents(url:string, currentOffset:number, total:nu
   let urlOffset = url + '&offset=' + (currentOffset + (total * 20))
   const response = await fetch(urlOffset);
   const val = await response.json();
-  if (val?.results?.length > 0) console.log('DaoEvents: processing ' + (val?.results?.length || 0) + ' events from ' + url)
+  if (!val || !val.results || typeof (val.results) !== 'object' || val.results.length === 0) {
+    console.log('resolveExtensionEvents: for url ' + urlOffset, val.results)
+    return false
+  } else {
+    console.log('resolveExtensionEvents: no processing ' + val.results.length + ' for url ' + urlOffset)
+  }
   for (const event of val.results) {
     const pdb = await findBaseDaoEventByContractAndIndex(daoContractId, Number(event.event_index), event.tx_id)
     if (!pdb) {
