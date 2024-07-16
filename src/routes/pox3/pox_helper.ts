@@ -183,35 +183,6 @@ function getVersionAsType(version:string) {
   else if (version === '0x06') return 'tr'
 }
 
-export function getAddressFromHashBytes(hashBytes:string, version:string) {
-  let btcAddr:string|undefined;
-  try {
-    const net = (getConfig().network === 'testnet') ? btc.TEST_NETWORK : btc.NETWORK
-    if (!version.startsWith('0x')) version = '0x' + version
-    if (!hashBytes.startsWith('0x')) hashBytes = '0x' + hashBytes
-      let txType = getVersionAsType(version)
-    let outType:any;
-    if (txType === 'tr') {
-      outType = {
-        type: getVersionAsType(version),
-        pubkey: hex.decode(hashBytes.split('x')[1])
-      }
-    } else {
-      outType = {
-        type: getVersionAsType(version),
-        hash: hex.decode(hashBytes.split('x')[1])
-      }
-    }
-    const addr:any = btc.Address(net);
-    btcAddr = addr.encode(outType)
-    return btcAddr
-  } catch (err:any) {
-    btcAddr = err.message
-    console.error('getAddressFromHashBytes: version:hashBytes: ' + version + ':' + hashBytes)
-  }
-  return btcAddr
-}
-
 export async function readSavePoxEntries(cycle:number, len:number, offset:number):Promise<any> {
     const entries = []
     let poxEntry:PoxEntry;

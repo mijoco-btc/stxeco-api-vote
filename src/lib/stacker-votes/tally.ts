@@ -4,6 +4,7 @@ import { hex } from '@scure/base';
 import { serializeCV, principalCV } from '@stacks/transactions';
 import { getConfig } from '../config';
 import { saveVote } from '../../routes/dao/vote_count_helper';
+import { findPoxEntryByCycleAndIndex } from './pox_entries';
 
 const limit = 50 ;
 const PRE_NAKAMOTO_STACKS_TIP_HEIGHT = 850850

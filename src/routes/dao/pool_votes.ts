@@ -62,7 +62,7 @@ async function addToMongoDB(proposal:VotingEventProposeProposal, txs:Array<any>,
   for (const v of txs) {
     const burnBlockHeight = await getBurnBlockHeight(v.block_height)
     //const stackerInfo = await getStackerInfoAtTip(proposal.proposalData.startBlockHeight, v.sender_address)
-    const stackerDel:Delegation = await getCheckDelegation(getConfig().stacksApi,getConfig().poxContractId!, proposal.proposalData.startBlockHeight, v.sender_address)
+    const stackerDel:Delegation = await getCheckDelegation(getConfig().stacksApi,getConfig().poxContractId!, v.sender_address)
     console.log('getCheckDelegationAtTip: ', stackerDel)
 
     const potVote:any = {

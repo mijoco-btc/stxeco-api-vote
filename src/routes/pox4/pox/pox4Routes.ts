@@ -1,9 +1,10 @@
 import express from "express";
 import { findRewardSlotByAddress, findRewardSlotByAddressMinHeight, findRewardSlotByCycle, getRewardsByAddress, readAllRewardSlots, readRewardSlots } from "./reward_slot_helper";
-import { collateStackerInfo, extractAllPoxEntriesInCycle, findPoxEntriesByAddress, findPoxEntriesByCycle, getAddressFromHashBytes, getHashBytesFromAddress, readPoxEntriesFromContract, readSavePoxEntries } from "./pox_helper";
-import { getPoxInfo } from "../pox-contract/pox_contract_helper";
-import { readDelegationEvents } from "./delegation_helper";
+import { collateStackerInfo, extractAllPoxEntriesInCycle, findPoxEntriesByAddress, findPoxEntriesByCycle, readPoxEntriesFromContract, readSavePoxEntries } from "./pox_helper";
 import { getConfig } from "../../../lib/config";
+import { getAddressFromHashBytes, getHashBytesFromAddress } from "@mijoco/btc_helpers";
+import { getPoxInfo } from "@mijoco/stx_helpers/dist/index";
+import { readDelegationEvents } from "@mijoco/stx_helpers/dist/index";
 
 const router = express.Router();
 
@@ -41,7 +42,7 @@ router.get("/sync/reward-slots", async (req, res, next) => {
 
 router.get("/stacker-info/:address", async (req, res, next) => {
   try {
-    const poxInfo = await getPoxInfo()
+    const poxInfo = await getPoxInfo(getConfig().stacksApi)
     const response = await collateStackerInfo(req.params.address, poxInfo.current_cycle.id);
     return res.send(response);
   } catch (error) {
@@ -104,7 +105,7 @@ router.get("/reward-slot/:address", async (req, res, next) => {
 
 router.get("/sync/reward-slots/:offset/:limit", async (req, res, next) => {
   try {
-    const poxInfo = await getPoxInfo()
+    const poxInfo = await getPoxInfo(getConfig().stacksApi)
     const response = await readRewardSlots(Number(req.params.offset), Number(req.params.limit), poxInfo);
     return res.send(response);
   } catch (error) {
@@ -158,7 +159,7 @@ router.get("/sync/pox-entries/:cycle/:index", async (req, res, next) => {
 
 router.get("/decode/:address", async (req, res, next) => {
   try {
-    const response = await getHashBytesFromAddress(req.params.address);
+    const response = await getHashBytesFromAddress(getConfig().network, req.params.address);
     return res.send(response);
   } catch (error) {
     console.log('Error in routes: ', error)
@@ -168,7 +169,7 @@ router.get("/decode/:address", async (req, res, next) => {
 
 router.get("/encode/:version/:hashBytes", async (req, res, next) => {
   try {
-    const response = await getAddressFromHashBytes(req.params.hashBytes, req.params.version);
+    const response = await getAddressFromHashBytes(getConfig().network, req.params.hashBytes, req.params.version);
     return res.send(response);
   } catch (error) {
     console.log('Error in routes: ', error)

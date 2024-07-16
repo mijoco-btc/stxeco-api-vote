@@ -1,15 +1,18 @@
 import express from "express";
 import { findRewardSlotByAddress, findRewardSlotByAddressMinHeight, findRewardSlotByCycle, getRewardsByAddress, readAllRewardSlots, readRewardSlots } from "./reward_slot_helper";
-import { collateStackerInfo, extractAllPoxEntriesInCycle, findPoxEntriesByAddress, findPoxEntriesByCycle, getAddressFromHashBytes, getHashBytesFromAddress, readPoxEntriesFromContract, readSavePoxEntries } from "./pox_helper";
-import { readDelegationEvents } from "./delegation_helper";
+import { collateStackerInfo, extractAllPoxEntriesInCycle, findPoxEntriesByAddress, findPoxEntriesByCycle, readPoxEntriesFromContract, readSavePoxEntries } from "./pox_helper";
 import { findPoolStackerEventsByDelegator, findPoolStackerEventsByHashBytes, findPoolStackerEventsByStacker, findPoolStackerEventsByStackerAndEvent, readPoolStackerEvents } from "./pool_stacker_events_helper";
 import { getConfig } from "../../lib/config";
+import { getAllowanceContractCallers, getPoxCycleInfo, getStackerInfoFromContract } from "@mijoco/stx_helpers/dist/pox/pox";
+import { getPoxInfo } from "@mijoco/stx_helpers";
+import { getPoxBitcoinAddressInfo } from "./pox_contract_helper";
+import { getAddressFromHashBytes, getHashBytesFromAddress } from "@mijoco/btc_helpers";
 
 const router = express.Router();
 
 router.get("/info", async (req, res, next) => {
   try {
-    const response = await getPoxInfo();
+    const response = await getPoxInfo(getConfig().stacksApi);
     return res.send(response);
   } catch (error) {
     console.log('Error in routes: ', error)
@@ -19,7 +22,7 @@ router.get("/info", async (req, res, next) => {
 
 router.get("/info/cycle/:cycle", async (req, res, next) => {
   try {
-    const cycleInfo = await getPoxCycleInfo(Number(req.params.cycle));
+    const cycleInfo = await getPoxCycleInfo(getConfig().stacksApi,getConfig().poxContractId!, Number(req.params.cycle));
     return res.send(cycleInfo);
   } catch (error) {
     console.log('Error in routes: ', error)
@@ -29,8 +32,8 @@ router.get("/info/cycle/:cycle", async (req, res, next) => {
 
 router.get("/sync/delegation-events/:poolPrincipal/:offset/:limit", async (req, res, next) => {
   try {
-    const response = await readDelegationEvents(req.params.poolPrincipal, Number(req.params.offset), Number(req.params.limit));
-    return res.send(response);
+    //const response = await readDelegationEvents(getConfig().stacksApi,getConfig().poxContractId!, req.params.poolPrincipal, Number(req.params.offset), Number(req.params.limit));
+    return res.send('readDelegationEvents?');
   } catch (error) {
     console.log('Error in routes: ', error)
     next('An error occurred fetching pox-info.')
@@ -49,7 +52,7 @@ router.get("/sync/reward-slots", async (req, res, next) => {
 
 router.get("/get-allowance-contract-callers/:address/:contract", async (req, res, next) => {
   try {
-    const response = await getAllowanceContractCallers(req.params.address, req.params.contract);
+    const response = await getAllowanceContractCallers(getConfig().stacksApi,getConfig().poxContractId!, req.params.address, req.params.contract);
     console.log(response)
     return res.send(response);
   } catch (error) {
@@ -60,7 +63,7 @@ router.get("/get-allowance-contract-callers/:address/:contract", async (req, res
 
 router.get("/stacker-info/:address", async (req, res, next) => {
   try {
-    const poxInfo = await getPoxInfo()
+    const poxInfo = await getPoxInfo(getConfig().stacksApi)
     const response = await collateStackerInfo(req.params.address, poxInfo.current_cycle.id);
     return res.send(response);
   } catch (error) {
@@ -118,8 +121,8 @@ router.get("/stacker/:stxAddress/:cycle", async (req, res, next) => {
   try {
     const stxAddress = req.params.stxAddress
     let response:any = {};
-    response = await getStackerInfoFromContract(stxAddress, Number(req.params.cycle));
-    response.cycleInfo = await getPoxCycleInfo(getConfig().stacksApi, getConfig().pox4ContractId, Number(req.params.cycle));
+    response = await getStackerInfoFromContract(getConfig().stacksApi, getConfig().network, getConfig().poxContractId!, stxAddress, Number(req.params.cycle));
+    response.cycleInfo = await getPoxCycleInfo(getConfig().stacksApi, getConfig().poxContractId!, Number(req.params.cycle));
     console.log(response)
     return res.send(response);
   } catch (error) {
@@ -150,7 +153,7 @@ router.get("/reward-slot/:address", async (req, res, next) => {
 
 router.get("/sync/reward-slots/:offset/:limit", async (req, res, next) => {
   try {
-    const poxInfo = await getPoxInfo()
+    const poxInfo = await getPoxInfo(getConfig().stacksApi)
     const response = await readRewardSlots(Number(req.params.offset), Number(req.params.limit), poxInfo);
     return res.send(response);
   } catch (error) {
@@ -204,7 +207,7 @@ router.get("/sync/pox-entries/:cycle/:index", async (req, res, next) => {
 
 router.get("/decode/:address", async (req, res, next) => {
   try {
-    const response = await getHashBytesFromAddress(req.params.address);
+    const response = await getHashBytesFromAddress(getConfig().network, req.params.address);
     return res.send(response);
   } catch (error) {
     console.log('Error in routes: ', error)
@@ -214,7 +217,7 @@ router.get("/decode/:address", async (req, res, next) => {
 
 router.get("/encode/:version/:hashBytes", async (req, res, next) => {
   try {
-    const response = await getAddressFromHashBytes(req.params.hashBytes, req.params.version);
+    const response = await getAddressFromHashBytes(getConfig().network, req.params.hashBytes, req.params.version);
     return res.send(response);
   } catch (error) {
     console.log('Error in routes: ', error)

@@ -6,7 +6,7 @@ import { pox4AddressInfoCollection } from '../../../lib/data/db_models';
 import { findPoolStackerEventsByHashBytesAndVersion, findPoolStackerEventsByStacker } from '../pox-events/pox4_events_helper';
 import { getPoxInfo, PoolStackerEvent, PoxAddress, PoxEntry, StackerInfo, StackerStats } from '@mijoco/stx_helpers/dist/index';
 import { getNumbEntriesRewardCyclePoxList, getPoxCycleInfo, getRewardSetPoxAddress, getStackerInfoFromContract } from '@mijoco/stx_helpers/dist/pox/pox';
-import { getHashBytesFromAddress } from '@mijoco/btc_helpers/dist/index';
+import { getAddressFromHashBytes, getHashBytesFromAddress } from '@mijoco/btc_helpers/dist/index';
 
 export async function collatePoolStackerInfo(address:string, cycle:number):Promise<StackerStats> {
   const addressType = 'stacks'
@@ -155,43 +155,6 @@ export async function readPoxEntriesFromContract(cycle:number):Promise<any> {
   return []
 }
 
-function getVersionAsType(version:string) {
-  if (version === '0x00') return 'pkh'
-  else if (version === '0x01') return 'sh'
-  else if (version === '0x04') return 'wpkh'
-  else if (version === '0x05') return 'wsh'
-  else if (version === '0x06') return 'tr'
-}
-
-export function getAddressFromHashBytes(hashBytes:string, version:string) {
-  const net = (getConfig().network === 'testnet') ? btc.TEST_NETWORK : btc.NETWORK
-  if (!version.startsWith('0x')) version = '0x' + version
-  if (!hashBytes.startsWith('0x')) hashBytes = '0x' + hashBytes
-  let btcAddr:string|undefined;
-  try {
-    let txType = getVersionAsType(version)
-    let outType:any;
-    if (txType === 'tr') {
-      outType = {
-        type: getVersionAsType(version),
-        pubkey: hex.decode(hashBytes.split('x')[1])
-      }
-    } else {
-      outType = {
-        type: getVersionAsType(version),
-        hash: hex.decode(hashBytes.split('x')[1])
-      }
-    }
-    const addr:any = btc.Address(net);
-    btcAddr = addr.encode(outType)
-    return btcAddr
-  } catch (err:any) {
-    btcAddr = err.message
-    console.error('getAddressFromHashBytes: version:hashBytes: ' + version + ':' + hashBytes)
-  }
-  return btcAddr
-}
-
 export async function readSavePoxEntries(cycle:number, len:number, offset:number):Promise<any> {
     const entries = []
     let poxEntry:PoxEntry;
@@ -213,7 +176,7 @@ export async function readSavePoxEntries(cycle:number, len:number, offset:number
             index: i,
             cycle,
             poxAddr,
-            bitcoinAddr: getAddressFromHashBytes(poxAddr.hashBytes, poxAddr.version),
+            bitcoinAddr: getAddressFromHashBytes(getConfig().network, poxAddr.hashBytes, poxAddr.version),
             stacker: (entry.stacker.value) ? entry.stacker.value.value : undefined,
             totalUstx: Number(entry['total-ustx'].value),
             delegations: 0

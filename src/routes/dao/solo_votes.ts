@@ -1,5 +1,5 @@
 import { getConfig } from "../../lib/config"
-import { extractAllPoxEntriesInCycle, findPoxEntriesByAddressAndCycle, getAddressFromHashBytes, getHashBytesFromAddress } from "../pox3/pox_helper";
+import { extractAllPoxEntriesInCycle, findPoxEntriesByAddressAndCycle, getAddressFromHashBytes } from "../pox3/pox_helper";
 import { findVotesByProposalAndMethod, findVotesBySoloZeroAmounts, findVotesByVoter, saveVote, updateVote } from "./vote_count_helper";
 import * as btc from '@scure/btc-signer';
 import { hex } from '@scure/base';

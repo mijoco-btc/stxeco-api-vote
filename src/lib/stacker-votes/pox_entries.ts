@@ -1,15 +1,13 @@
 import { getConfig } from "../config";
-import { hex } from '@scure/base';
-import { getDaoConfig } from "../config_dao";
-import { serializeCV, uintCV } from "@stacks/transactions";
-import { callContractReadOnly, PoxAddress } from "@mijoco/stx_helpers/dist/index";
+import { PoxAddress } from "@mijoco/stx_helpers/dist/index";
 import { PoxEntry } from "@mijoco/stx_helpers/dist/pox_types";
 import { poxAddressInfo } from "../data/db_models";
 import { getAddressFromHashBytes } from "@mijoco/btc_helpers/dist/index";
+import { getNumbEntriesRewardCyclePoxList, getRewardSetPoxAddress } from "@mijoco/stx_helpers/dist/pox/pox";
 
 
 export async function readPoxEntriesFromContract(cycle:number):Promise<any> {
-  const len = await getNumbEntriesRewardCyclePoxList(cycle)
+  const len = await getNumbEntriesRewardCyclePoxList(getConfig().stacksApi, getConfig().poxContractId!, cycle)
   let offset = 0
   try {
     const o = await findLastPoxEntryByCycle(cycle)
@@ -34,7 +32,7 @@ export async function readSavePoxEntries(cycle:number, len:number, offset:number
       //}
       let poxAddr:PoxAddress = {} as PoxAddress;
       try {
-        const entry = await getRewardSetPoxAddress(cycle, i)
+        const entry = await getRewardSetPoxAddress(getConfig().stacksApi, getConfig().poxContractId!, cycle, i)
         if (entry) {
           poxAddr = {
             version: entry['pox-addr'].value.version.value, 
