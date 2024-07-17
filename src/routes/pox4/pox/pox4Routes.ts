@@ -2,9 +2,9 @@ import express from "express";
 import { findRewardSlotByAddress, findRewardSlotByAddressMinHeight, findRewardSlotByCycle, getRewardsByAddress, readAllRewardSlots, readRewardSlots } from "./reward_slot_helper";
 import { collateStackerInfo, extractAllPoxEntriesInCycle, findPoxEntriesByAddress, findPoxEntriesByCycle, readPoxEntriesFromContract, readSavePoxEntries } from "./pox_helper";
 import { getConfig } from "../../../lib/config";
-import { getAddressFromHashBytes, getHashBytesFromAddress } from "@mijoco/btc_helpers";
+import { getAddressFromHashBytes, getHashBytesFromAddress } from "@mijoco/btc_helpers/dist/index";
 import { getPoxInfo } from "@mijoco/stx_helpers/dist/index";
-import { readDelegationEvents } from "@mijoco/stx_helpers/dist/index";
+import { readDelegationEvents } from "@mijoco/stx_helpers/dist/pox/index";
 
 const router = express.Router();
 
@@ -22,7 +22,7 @@ router.get("/stacks-info", async (req, res, next) => {
 
 router.get("/sync/delegation-events/:poolPrincipal/:offset/:limit", async (req, res, next) => {
   try {
-    const response = await readDelegationEvents(req.params.poolPrincipal, Number(req.params.offset), Number(req.params.limit));
+    const response = await readDelegationEvents(getConfig().stacksApi, getConfig().network, getConfig().poxContractId!, req.params.poolPrincipal, Number(req.params.offset), Number(req.params.limit));
     return res.send(response);
   } catch (error) {
     console.log('Error in routes: ', error)

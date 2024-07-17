@@ -1,8 +1,7 @@
 import { BASE_URL, getConfig } from "../../../lib/config";
-import { getPoxInfo } from "../pox-contract/pox_contract_helper";
 import { parseRawPayload } from "./payload_type_parser";
 import { pox4BitcoinStacksTxCollection } from "../../../lib/data/db_models";
-import { BurnBlock, L1Input, L1Output, Layer1StacksTx, bitcoinToSats } from "@mijoco/stx_helpers/dist/index";
+import { BurnBlock, L1Input, L1Output, Layer1StacksTx, bitcoinToSats, getPoxInfo } from "@mijoco/stx_helpers/dist/index";
 import { getBlock } from "@mijoco/btc_helpers/dist/index";
 
 export const MAGIC_BYTES_TESTNET = '5432'; 
@@ -166,9 +165,9 @@ async function processTx(tx:any, burn_block_hash:string, burn_block_height:numbe
 }
 
 async function getEpochStartHeight(epochId:string):Promise<number> {
-  const poxInfo = await getPoxInfo()
+  const poxInfo = await getPoxInfo(getConfig().network)
   const epoch = poxInfo.epochs.find((o:any) => o.epoch_id === epochId)
-  return epoch.start_height
+  return epoch?.start_height || 0
 }
 
 async function getBurnBlocks(offset:number, limit:number):Promise<{results: [], total: number, limit:number, offset:number}> {

@@ -4,9 +4,9 @@ import { collateStackerInfo, extractAllPoxEntriesInCycle, findPoxEntriesByAddres
 import { findPoolStackerEventsByDelegator, findPoolStackerEventsByHashBytes, findPoolStackerEventsByStacker, findPoolStackerEventsByStackerAndEvent, readPoolStackerEvents } from "./pool_stacker_events_helper";
 import { getConfig } from "../../lib/config";
 import { getAllowanceContractCallers, getPoxCycleInfo, getStackerInfoFromContract } from "@mijoco/stx_helpers/dist/pox/pox";
-import { getPoxInfo } from "@mijoco/stx_helpers";
+import { getPoxInfo } from "@mijoco/stx_helpers/dist/index";
 import { getPoxBitcoinAddressInfo } from "./pox_contract_helper";
-import { getAddressFromHashBytes, getHashBytesFromAddress } from "@mijoco/btc_helpers";
+import { getAddressFromHashBytes, getHashBytesFromAddress } from "@mijoco/btc_helpers/dist/index";
 
 const router = express.Router();
 

@@ -1,8 +1,6 @@
-import { hex } from '@scure/base';
 import { poxAddressInfo, stackerVotes } from "../../lib/data/db_models";
-import * as btc from '@scure/btc-signer';
+import { getAddressFromHashBytes } from "@mijoco/btc_helpers/dist/index";
 import { getConfig } from "../../lib/config";
-import * as P from 'micro-packed';
 import { burnHeightToRewardCycle, getRewardsByAddress } from "./reward_slot_helper";
 import { findPoolStackerEventsByHashBytesAndVersion, findPoolStackerEventsByStacker } from './pool_stacker_events_helper';
 import { getPoxInfo, type PoolStackerEvent, type PoxAddress, type PoxEntry, type StackerInfo, type StackerStats, type VoteEvent } from '@mijoco/stx_helpers/dist/index';
@@ -204,7 +202,7 @@ export async function readSavePoxEntries(cycle:number, len:number, offset:number
             index: i,
             cycle,
             poxAddr,
-            bitcoinAddr: getAddressFromHashBytes(poxAddr.hashBytes, poxAddr.version),
+            bitcoinAddr: getAddressFromHashBytes(getConfig().network, poxAddr.hashBytes, poxAddr.version),
             stacker: (entry.stacker.value) ? entry.stacker.value.value : undefined,
             totalUstx: Number(entry['total-ustx'].value),
             delegations: 0

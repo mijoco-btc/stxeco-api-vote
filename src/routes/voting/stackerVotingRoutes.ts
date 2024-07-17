@@ -4,14 +4,14 @@ import { fetchProposeEvent } from "../../lib/events/event_helper_voting_contract
 import { VoteEvent, VotingEventProposeProposal } from "@mijoco/stx_helpers/dist/index";
 import { getSummary } from "../../lib/events/proposal";
 import { saveStackerBitcoinTxs, saveStackerStacksTxs } from "../../lib/stacker-votes/tally";
-import { findVoteByProposalAndVoter } from "../dao/vote_count_helper";
+import { findProposalVotesByProposalAndSource, findVoteByProposalAndVoter } from "../dao/vote_count_helper";
+import { readAllRewardSlots } from "../pox3/reward_slot_helper";
 
 const router = express.Router();
 
 router.get("/read-stacker-votes/:proposalContract", async (req, res, next) => {
   try {
     const proposal:VotingEventProposeProposal = await fetchProposeEvent(req.params.proposalContract)
-    //console.log('/read-stacker-votes/:proposalContract: proposal: ', proposal)
     if (!proposal) {
       res.sendStatus(404);
     } else if (!proposal.stackerData || !proposal.stackerData.heights) {
@@ -47,6 +47,28 @@ router.get("/reconcile-stacker-votes/:proposal/:voter", async (req, res, next) =
     next('An error occurred fetching sbtc data.')
   }
 });
+
+router.get("/get-stacker-votes/:proposal", async (req, res, next) => {
+  try {
+    const votesBitcoin:Array<VoteEvent> = await findProposalVotesByProposalAndSource(req.params.proposal, 'bitcoin')
+    const votesStacks:Array<VoteEvent> = await findProposalVotesByProposalAndSource(req.params.proposal, 'stacks')
+    res.send({votesBitcoin, votesStacks})
+  } catch (error) {
+    console.log('Error in routes: ', error)
+    next('An error occurred fetching sbtc data.')
+  }
+});
+
+router.get("/sync/reward-slots", async (req, res, next) => {
+  try {
+    const response = await readAllRewardSlots();
+    return res.send(response);
+  } catch (error) {
+    console.log('Error in routes: ', error)
+    next('An error occurred fetching pox-info.')
+  }
+});
+
 
 router.get("/results/solo-stackers/:address", async (req, res, next) => {
   try {

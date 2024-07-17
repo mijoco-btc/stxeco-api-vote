@@ -1,10 +1,9 @@
 import { fetchAddressTransactions, getHashBytesFromAddress } from '@mijoco/btc_helpers/dist/index';
-import { callContractReadOnly, StackerInfo, type VoteEvent, type VotingEventProposeProposal } from '@mijoco/stx_helpers/dist/index';
-import { hex } from '@scure/base';
-import { serializeCV, principalCV } from '@stacks/transactions';
+import { StackerInfo, type VoteEvent, type VotingEventProposeProposal } from '@mijoco/stx_helpers/dist/index';
 import { getConfig } from '../config';
 import { saveVote } from '../../routes/dao/vote_count_helper';
-import { findPoxEntryByCycleAndIndex } from './pox_entries';
+import { findPoxEntriesByAddressAndCycle, findPoxEntryByCycleAndIndex } from './pox_entries';
+import { getStackerInfoFromContract } from '@mijoco/stx_helpers/dist/pox/pox';
 
 const limit = 50 ;
 const PRE_NAKAMOTO_STACKS_TIP_HEIGHT = 850850
@@ -186,11 +185,7 @@ async function convertBitcoinTxsToVotes(proposal:VotingEventProposeProposal, txs
 async function determineTotalAverageUstx(bitcoinAddress:string) {
   const poxEntries1 = await extractAllPoxEntriesInCycle(bitcoinAddress, 78)
   const poxEntries2 = await extractAllPoxEntriesInCycle(bitcoinAddress, 79)
-  //const poxEntries1:Array<any> = await findPoxEntriesByAddressAndCycle(bitcoinAddress, 78);
-  //const poxEntries2:Array<any> = await findPoxEntriesByAddressAndCycle(bitcoinAddress, 79);
 
-  //console.log('determineTotalAverageUstx: poxEntries1: ', poxEntries1)
-  //console.log('determineTotalAverageUstx: poxEntries2: ', poxEntries2)
   let total = 0
   let totalNested = 0
   let poxStacker:string = '';
@@ -241,7 +236,7 @@ async function extractAllPoxEntriesInCycle(address:string, cycle:number) {
   for (const entry of newEntries) {
     try {
       if (entry.stacker) {
-        const stackerInfoPerCycle = (await getStackerInfoFromContract(entry.stacker, entry.cycle));
+        const stackerInfoPerCycle = (await getStackerInfoFromContract(getConfig().stacksApi, getConfig().network, getConfig().poxContractId!, entry.stacker, entry.cycle));
         if (stackerInfoPerCycle?.stacker?.rewardSetIndexes) {
           entry.poxStackerInfo = await countEntries(entry.cycle, stackerInfoPerCycle)
         }

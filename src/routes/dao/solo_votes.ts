@@ -1,9 +1,10 @@
 import { getConfig } from "../../lib/config"
-import { extractAllPoxEntriesInCycle, findPoxEntriesByAddressAndCycle, getAddressFromHashBytes } from "../pox3/pox_helper";
+import { extractAllPoxEntriesInCycle, findPoxEntriesByAddressAndCycle } from "../pox3/pox_helper";
+import { getAddressFromHashBytes } from "@mijoco/btc_helpers/dist/index";
 import { findVotesByProposalAndMethod, findVotesBySoloZeroAmounts, findVotesByVoter, saveVote, updateVote } from "./vote_count_helper";
 import * as btc from '@scure/btc-signer';
 import { hex } from '@scure/base';
-import { fetchAddressTransactions, fetchAddressTransactionsMin, fetchTransaction } from "@mijoco/btc_helpers/dist/index";
+import { fetchAddressTransactions, getHashBytesFromAddress, fetchAddressTransactionsMin, fetchTransaction } from "@mijoco/btc_helpers/dist/index";
 import { VoteEvent, VotingEventProposeProposal } from "@mijoco/stx_helpers/dist/index";
 import assert from "assert";
 
@@ -112,7 +113,7 @@ export async function reconcileSoloTxs(proposal:VotingEventProposeProposal):Prom
   console.log('setSoloVotes: pe1:', votesAll.length)
   for (const v of votesAll) {
     if (v && v.poxAddr) {
-      const bitcoinAddress = getAddressFromHashBytes(v.poxAddr.hashBytes, v.poxAddr.version)
+      const bitcoinAddress = getAddressFromHashBytes(getConfig().network, v.poxAddr.hashBytes, v.poxAddr.version)
       if (v.voter === bitcoinAddress) {
         const result = await determineTotalAverageUstx(bitcoinAddress)
         try {
@@ -178,7 +179,7 @@ async function addToMongoDB(proposal:VotingEventProposeProposal, txs:Array<any>,
       const bitcoinAddress = v.vin[0].prevout.scriptpubkey_address;
       const vcheck = votes.findIndex((o) => o.voter === bitcoinAddress)
       if (vcheck === -1) {
-        const poxAddr = getHashBytesFromAddress(bitcoinAddress)
+        const poxAddr = getHashBytesFromAddress(getConfig().network, bitcoinAddress)
         const result = await determineTotalAverageUstx(bitcoinAddress)
   
         const potVote:any = {
