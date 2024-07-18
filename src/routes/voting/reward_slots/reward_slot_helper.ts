@@ -1,6 +1,6 @@
 import { getPoxInfo, PoxInfo, RewardSlot } from '@mijoco/stx_helpers/dist/index';
-import { getConfig } from '../../lib/config';
-import { rewardSlotHolders } from '../../lib/data/db_models';
+import { getConfig } from '../../../lib/config';
+import { rewardSlotHolders } from '../../../lib/data/db_models';
 
 const limit = 250;
 let depth = 6000;

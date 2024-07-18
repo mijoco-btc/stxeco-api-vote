@@ -2,9 +2,10 @@
 #
 ############################################################
 
-export SERVER=spinoza.brightblock.org;
-export DOCKER_NAME=stxeco_api_vote
-export PORT=22
+SERVER=spinoza.brightblock.org;
+DOCKER_NAME=stxeco_api_vote
+DEPLOYMENT=$1
+PORT=22
 
 if [ "$DEPLOYMENT" == "testnet" ]; then
   SERVER=leibniz.brightblock.org;
@@ -13,8 +14,8 @@ if [ "$DEPLOYMENT" == "devnet" ]; then
   SERVER=descartes.brightblock.org;
 fi
 
-export DOCKER_ID_USER='mijoco'
-export DOCKER_CMD='docker'
+DOCKER_ID_USER='mijoco'
+DOCKER_CMD='docker'
 
 $DOCKER_CMD build -t mijoco/stxeco_api_vote .
 $DOCKER_CMD tag mijoco/stxeco_api_vote mijoco/stxeco_api_vote

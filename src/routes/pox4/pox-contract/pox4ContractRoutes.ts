@@ -1,8 +1,8 @@
 import express from "express";
-import { getPoxBitcoinAddressInfo } from "./pox_contract_helper";
 import { getConfig } from "../../../lib/config";
 import { checkCallerAllowed, getAllowanceContractCallers, getBurnHeightToRewardCycle, getPoxCycleInfo, getRewardCycleToBurnHeight, getStackerInfoFromContract } from "@mijoco/stx_helpers/dist/pox/pox";
 import { getPoxInfo } from "@mijoco/stx_helpers/dist/index";
+import { getPoxBitcoinAddressInfo } from "../../pox3/pox_contract_helper";
 
 const router = express.Router();
 

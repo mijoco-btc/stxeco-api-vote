@@ -7,8 +7,8 @@ import { scanVoting } from '../../lib/events/event_helper_voting_contract';
 // 10 mins past every fourth hour: 10 */4 * * *' 
 export const pox4EventsJob = cron.schedule('10 */4 * * *', (fireDate) => {
   try {
-    console.log('Running: pox4EventsJob at: ' + fireDate);
-    readPox4Events();
+    console.log('NOT Running: pox4EventsJob at: ' + fireDate);
+    //readPox4Events();
   } catch (err:any) {
     console.log('Error running: pox4EventsJob: ', err);
   }

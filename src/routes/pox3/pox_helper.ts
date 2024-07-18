@@ -1,7 +1,7 @@
 import { poxAddressInfo, stackerVotes } from "../../lib/data/db_models";
 import { getAddressFromHashBytes } from "@mijoco/btc_helpers/dist/index";
 import { getConfig } from "../../lib/config";
-import { burnHeightToRewardCycle, getRewardsByAddress } from "./reward_slot_helper";
+import { burnHeightToRewardCycle, getRewardsByAddress } from "../voting/reward_slots/reward_slot_helper";
 import { findPoolStackerEventsByHashBytesAndVersion, findPoolStackerEventsByStacker } from './pool_stacker_events_helper';
 import { getPoxInfo, type PoolStackerEvent, type PoxAddress, type PoxEntry, type StackerInfo, type StackerStats, type VoteEvent } from '@mijoco/stx_helpers/dist/index';
 import { getNumbEntriesRewardCyclePoxList, getPoxCycleInfo, getRewardSetPoxAddress, getStackerInfoFromContract } from '@mijoco/stx_helpers/dist/pox/index';
@@ -151,88 +151,6 @@ export async function collateStackerInfo(address:string, cycle:number):Promise<S
     }
 
 }
-
-export async function readPoxEntriesFromContract(cycle:number):Promise<any> {
-  if (cycle <= 0) {
-    const poxInfo = await getPoxInfo(getConfig().stacksApi);
-    const blockHeight = poxInfo.current_burnchain_block_height
-    cycle = burnHeightToRewardCycle(blockHeight, poxInfo) + cycle;
-  }
-  const len = await getNumbEntriesRewardCyclePoxList(getConfig().stacksApi, getConfig().poxContractId!, cycle)
-  let offset = 0
-  try {
-    const o = await findLastPoxEntryByCycle(cycle)
-    if (o && o.length > 0) offset = o[0].index + 1
-  } catch(e) {}
-
-  if (len > 0) {
-    console.log('readSavePoxEntries: cycle=' + cycle + ' number entries=' + len + ' from offset=', offset)
-    readSavePoxEntries(cycle, len, offset);
-    return { entries: len }
-  }
-  return []
-}
-
-function getVersionAsType(version:string) {
-  if (version === '0x00') return 'pkh'
-  else if (version === '0x01') return 'sh'
-  else if (version === '0x04') return 'wpkh'
-  else if (version === '0x05') return 'wsh'
-  else if (version === '0x06') return 'tr'
-}
-
-export async function readSavePoxEntries(cycle:number, len:number, offset:number):Promise<any> {
-    const entries = []
-    let poxEntry:PoxEntry;
-    for (let i = offset; i < len; i++) {
-      //if (i > 2) {
-      //  i = len;
-      //  break;
-      //}
-      let poxAddr:PoxAddress = {} as PoxAddress;
-      try {
-        const entry = await getRewardSetPoxAddress(getConfig().stacksApi, getConfig().poxContractId!, cycle, i)
-        if (entry) {
-          poxAddr = {
-            version: entry['pox-addr'].value.version.value, 
-            hashBytes: entry['pox-addr'].value.hashbytes.value
-          }
-    
-          poxEntry = {
-            index: i,
-            cycle,
-            poxAddr,
-            bitcoinAddr: getAddressFromHashBytes(getConfig().network, poxAddr.hashBytes, poxAddr.version),
-            stacker: (entry.stacker.value) ? entry.stacker.value.value : undefined,
-            totalUstx: Number(entry['total-ustx'].value),
-            delegations: 0
-          } as PoxEntry
-          if (poxEntry.stacker) {
-            const result = await readDelegates(poxEntry.stacker)
-            //console.log('readDelegates: ', result)
-            poxEntry.delegations = result?.total || 0
-          }
-          await saveOrUpdatePoxEntry(poxEntry)
-          entries.push(poxEntry)
-        }
-      } catch (err:any) {
-        console.error('readSavePoxEntries: saving: ' + poxAddr + '/' + cycle + '/' + i)
-        console.error('readSavePoxEntries: ' + err.message)
-      }
-    }
-    return entries
-  }
-  
-  async function readDelegates(delegate:string) {
-    const url = getConfig().stacksApi + '/extended/beta/stacking/' + delegate + '/delegations?offset=0&limit=1';
-    try {
-      const response = await fetch(url);
-      const val = await response.json();
-      return val;
-    } catch (err:any) {
-       console.log('callContractReadOnly4: ', err);
-    }
-  }
   
   // -- mongo: reward slots -------------
   export async function findLastPoxEntryByCycle(cycle:number):Promise<any> {

@@ -189,16 +189,6 @@ router.get("/votes/:proposalCid", async (req, res, next) => {
   }
 });
 
-router.get("/stacks-info", async (req, res, next) => {
-  try {
-    const response = await getStacksInfo();
-    return res.send(response);
-  } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching stacks-info.')
-  }
-});
-
 router.get("/balance/:stxAddress/:height", async (req, res, next) => {
   try {
     const response = await getBalanceAtHeight(req.params.stxAddress, Number(req.params.height || 0));

@@ -5,29 +5,6 @@ import { aggregateDelegationData, countsPoolStackerEvents, countsPoolStackerEven
 
 const router = express.Router();
 
-router.get("/stacks-info", async (req, res, next) => {
-  try {
-    const url = getConfig().stacksApi + '/v2/info';
-    const response = await fetch(url)
-    const result = await response.json();
-    return res.send(result);
-  } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching stacks-info.')
-  }
-});
-
-
-router.get("/stacker-events-by-hashbytes/:hashBytes/:page/:limit", async (req, res, next) => {
-  try {
-    const response = await findPoolStackerEventsByHashBytes(req.params.hashBytes, Number(req.params.page), Number(req.params.limit));
-    return res.send(response);
-  } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching sbtc data.')
-  }
-})
-
 router.get("/stacker-events-by-stacker/:address", async (req, res, next) => {
   try {
     const response = await findPoolStackerEventsByStacker(req.params.address);
