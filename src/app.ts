@@ -8,9 +8,11 @@ import { WebSocketServer } from 'ws'
 import { daoRoutes } from './routes/dao/daoRoutes'
 import { daoVotingRoutes } from './routes/voting/daoVotingRoutes'
 import { stackerVotingRoutes } from './routes/voting/stackerVotingRoutes'
+import { rewardSlotRoutes } from './routes/voting/rewardSlotRoutes'
+import { stackerEventRoutes } from './routes/voting/stackerEventRoutes'
 import { proposalRoutes } from './routes/proposals/proposalRoutes'
 import { getExchangeRates, rateRoutes, updateExchangeRates } from './routes/rates/rateRoutes'
-import { pox3Routes } from './routes/pox3/poxRoutes'
+import { pox3Routes } from './routes/voting/poxRoutes'
 import { connect } from './lib/data/db_models';
 import { setDaoConfigOnStart } from './lib/config_dao';
 import { initScanDaoEventsJob, initScanVotingEventsJob, pox4EventsJob } from './routes/schedules/JobScheduler';
@@ -52,6 +54,8 @@ app.use('/bridge-api/rates/v1', rateRoutes);
 app.use('/bridge-api/pox3/v1', pox3Routes);
 app.use('/bridge-api/dao-voting/v1', daoVotingRoutes);
 app.use('/bridge-api/stacker-voting/v1', stackerVotingRoutes);
+app.use('/bridge-api/stacker-events/v1', stackerEventRoutes);
+app.use('/bridge-api/reward-slots/v1', rewardSlotRoutes);
 
 console.log(`\n\nExpress is listening at http://localhost:${getConfig().port}`);
 console.log('Startup Environment: ', process.env.NODE_ENV);

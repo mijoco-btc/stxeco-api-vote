@@ -1,7 +1,7 @@
 import { getConfig } from "../../lib/config"
 import { poolStackerAddresses } from "./solo_pool_addresses"
 import { getBurnBlockHeight } from "./dao_helper"
-import { findPoolStackerEventsByStackerAndEvent } from "../pox3/pool_stacker_events_helper"
+import { findPoolStackerEventsByStackerAndEvent } from "../voting/stacker-events/pool_stacker_events_helper"
 import { findVotesByProposalAndMethod, saveOrUpdateVote, updateVote } from "./vote_count_helper"
 import { VoteEvent, VotingEventProposeProposal } from "@mijoco/stx_helpers/dist/index"
 import { getCheckDelegation } from "@mijoco/stx_helpers/dist/pox/pox"

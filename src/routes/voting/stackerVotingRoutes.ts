@@ -49,16 +49,6 @@ router.get("/get-stacker-votes/:proposal", async (req, res, next) => {
   }
 });
 
-router.get("/sync/reward-slots", async (req, res, next) => {
-  try {
-    const response = await readAllRewardSlots();
-    return res.send(response);
-  } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching pox-info.')
-  }
-});
-
 
 router.get("/results/solo-stackers/:address", async (req, res, next) => {
   try {
@@ -79,58 +69,5 @@ router.get("/results/summary/:proposal", async (req, res, next) => {
     next('An error occurred fetching pox-info.')
   }
 });
-
-router.get("/reward-slot/:address/least-recent", async (req, res, next) => {
-  try {
-    const response = await findRewardSlotByAddressMinHeight(req.params.address);
-    return res.send(response);
-  } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching pox-info.')
-  }
-});
-
-router.get("/reward-slot/:address", async (req, res, next) => {
-  try {
-    const response = await findRewardSlotByAddress(req.params.address);
-    return res.send(response);
-  } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching pox-info.')
-  }
-});
-
-router.get("/sync/reward-slots/:offset/:limit", async (req, res, next) => {
-  try {
-    const poxInfo = await getPoxInfo(getConfig().stacksApi)
-    const response = await readRewardSlots(Number(req.params.offset), Number(req.params.limit), poxInfo);
-    return res.send(response);
-  } catch (error) {
-    console.error('Error in routes: ', error)
-    next('An error occurred fetching sbtc data.') 
-  }
-});
-
-router.get("/reward-slots/:address/:offset/:limit", async (req, res, next) => {
-  try {
-    const response = await getRewardsByAddress(Number(req.params.offset), Number(req.params.limit), req.params.address);
-    return res.send(response);
-  } catch (error) {
-    console.error('Error in routes: ', error)
-    next('An error occurred fetching sbtc data.') 
-  }
-});
-
-router.get("/sync/reward-slots", async (req, res, next) => {
-  try {
-    const response = await readAllRewardSlots();
-    return res.send(response);
-  } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching pox-info.')
-  }
-});
-
-
 
 export { router as stackerVotingRoutes }

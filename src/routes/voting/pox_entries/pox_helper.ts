@@ -1,11 +1,17 @@
-import { poxAddressInfo, stackerVotes } from "../../lib/data/db_models";
-import { getAddressFromHashBytes } from "@mijoco/btc_helpers/dist/index";
-import { getConfig } from "../../lib/config";
-import { burnHeightToRewardCycle, getRewardsByAddress } from "../voting/reward_slots/reward_slot_helper";
-import { findPoolStackerEventsByHashBytesAndVersion, findPoolStackerEventsByStacker } from './pool_stacker_events_helper';
-import { getPoxInfo, type PoolStackerEvent, type PoxAddress, type PoxEntry, type StackerInfo, type StackerStats, type VoteEvent } from '@mijoco/stx_helpers/dist/index';
-import { getNumbEntriesRewardCyclePoxList, getPoxCycleInfo, getRewardSetPoxAddress, getStackerInfoFromContract } from '@mijoco/stx_helpers/dist/pox/index';
+import { poxAddressInfo, stackerVotes } from "../../../lib/data/db_models";
+import { getConfig } from "../../../lib/config";
+import { getRewardsByAddress } from "../reward_slots/reward_slot_helper";
+import { findPoolStackerEventsByHashBytesAndVersion, findPoolStackerEventsByStacker } from '../stacker-events/pool_stacker_events_helper';
+import { type PoolStackerEvent, type PoxAddress, type PoxEntry, type StackerInfo, type StackerStats, type VoteEvent } from '@mijoco/stx_helpers/dist/index';
+import { getPartialStackedByCycle, getPoxCycleInfo, getStackerInfoFromContract } from '@mijoco/stx_helpers/dist/pox/index';
 import { getHashBytesFromAddress } from '@mijoco/btc_helpers/dist/index';
+
+export async function getPoxBitcoinAddressInfo(address:string, cycle:number, sender:string):Promise<any> {
+  return {
+    partialStackedByCycle: await getPartialStackedByCycle(getConfig().stacksApi, getConfig().network, getConfig().poxContractId!, address, cycle, sender),
+  };
+}
+
 
 export async function findVotesByVoter(voter:string):Promise<any> {
   const result = await stackerVotes.find({"voter":voter}).toArray();

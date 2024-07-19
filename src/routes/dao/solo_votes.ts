@@ -1,5 +1,5 @@
 import { getConfig } from "../../lib/config"
-import { extractAllPoxEntriesInCycle, findPoxEntriesByAddressAndCycle } from "../pox3/pox_helper";
+import { extractAllPoxEntriesInCycle, findPoxEntriesByAddressAndCycle } from "../voting/pox_entries/pox_helper";
 import { getAddressFromHashBytes } from "@mijoco/btc_helpers/dist/index";
 import { findVotesByProposalAndMethod, findVotesBySoloZeroAmounts, findVotesByVoter, saveVote, updateVote } from "./vote_count_helper";
 import * as btc from '@scure/btc-signer';

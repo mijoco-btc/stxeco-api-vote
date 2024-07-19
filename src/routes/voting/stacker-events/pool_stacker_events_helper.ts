@@ -2,8 +2,8 @@
  * sbtc - interact with Stacks Blockchain to read sbtc contract info
  */
 import { cvToJSON, deserializeCV } from '@stacks/transactions';
-import { getConfig } from '../../lib/config';
-import { poolStackerEventsCollection } from '../../lib/data/db_models';
+import { getConfig } from '../../../lib/config';
+import { poolStackerEventsCollection } from '../../../lib/data/db_models';
 import util from 'util'
 import { DelegationAggregationIncrease, DelegationStackExtend, DelegationStackIncrease, DelegationStackStx, DelegationStx, HandleUnlock, PoolStackerEvent, PoxAddress, StackExtend, StackIncrease, StackStx } from '@mijoco/stx_helpers/dist/index';
 
@@ -34,7 +34,7 @@ export async function readPoolStackerEvents() {
   }
 }
 
-export async function innerReadPoolStackerEvents(val:any):Promise<any> {
+async function innerReadPoolStackerEvents(val:any):Promise<any> {
   let stackerEvent:PoolStackerEvent;
   let result:any;
   if (!val || !val.results || val.results.length === 0) {

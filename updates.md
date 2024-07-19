@@ -5,20 +5,21 @@
 Nakamoto onwards voting addresses - note these are generic yes/no addresses and can
 be reused for different ;
 
-```mongo
+## bdp001-sip-021-nakamoto
+
 db.votingContractEventCollection.findAndModify({query: {proposal: 'SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.bdp001-sip-021-nakamoto',event:'conclude'}, sort: {name: 1}, update: {$set: {stackerData: { stacksAddressYes:'SP00000000000003SCNSJTCSE62ZF4MSE', stacksAddressNo:'SP00000000000000DSQJTCSE63RMXHDP', bitcoinAddressYes:'11111111111111X6zHB1bPW6NJxw6', bitcoinAddressNo:'1111111111111117Crbcbt8W5dSU7', votingStart:829850, votingEnd:833950, customMajority:80, passed:true,votesAgainst:0,votesFor:0,},links: [{name: 'Nakamoto SIP', href: 'https://github.com/stacksgov/sips/blob/6d27e7cf706df5a367d8714e6037226d741630de/sips/sip-021/sip-021-nakamoto.md',display: 'sip-021-nakamoto', target: '_blank',} ]}}, upsert: false, new: true, fields: {proposal: 1, event: 1}})
+
+## bdp-dao-config-test
 
  db.votingContractEventCollection.findAndModify({query: {proposal: 'SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.bdp-dao-config-test'}, sort: {name: 1}, update: {$set: {stackerData: { sip: false, stacksAddressYes: 'SPB59DGGB5K7PRG36P4WC5FR853BAG4GSMK0F5XS',stacksAddressNo: 'SP3Z77Z29VFKBP6KFSH81NNG8H0S6GC4432JPA25V',bitcoinAddressYes: '342Pj51KkZRka7ant3YNQ5FthnA5AyXfeg',bitcoinAddressNo: '32WinV2fuzeLzqywhHEHVttC6b7ZMX34Aj' },links: [{name: 'Nakamoto SIP', href: 'https://github.com/stacksgov/sips/blob/6d27e7cf706df5a367d8714e6037226d741630de/sips/sip-021/sip-021-nakamoto.md',display: 'sip-021-nakamoto', target: '_blank',} ]}}, upsert: false, new: true, fields: {proposal: 1, event: 1}})
 
-// tentative - visibility
- db.tentativeProposalCollection.findAndModify({query: {tag: 'SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.bdp-multisig-transactions'}, sort: {name: 1}, update: {$set: {visible: false}}, upsert: false, new: true, fields: {tag: 1, visible: 1}})
-```
+## bdp-multisig-transactions
 
-SIP 2.1 voting addresses
+ db.votingContractEventCollection.findAndModify({query: {proposal: 'SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.bdp-multisig-transactions'}, sort: {name: 1}, update: {$set: {stackerData: { sip: false, stacksAddressYes: 'SP11R5DKT7DQ1RXEWN224CANGMR71CJM6ZN6SRCSM',stacksAddressNo: 'SP16FZ14391RAN55W9J38XEGFNY1DSBMCW3RZJSMR',bitcoinAddressYes: '33Q4Yr9x9yR816T7cGQTpYYX2Deiegv8cN',bitcoinAddressNo: '33c5jhR538FQXuzgTvKa2b5918TTFiMtpR' },links: [{name: 'Nakamoto SIP', href: 'https://github.com/stacksgov/sips/blob/174504cc5132473d0f74910ef7f8ba2c17af8068/sips/sip-027/sip-027-non-sequential-multisig-transactions.md',display: 'sip-multisig-transactions', target: '_blank',} ]}}, upsert: false, new: true, fields: {proposal: 1, event: 1}})
 
-```mongo
+## edp015-sip-activation
+
 db.votingContractEventCollection.findAndModify({ query: {proposal: 'SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.edp015-sip-activation', event:'propose'},  sort: {name: 1}, update: {$set: { stackerData: { stacksAddressYes:'SP00000000000003SCNSJTCHE66N2PXHX',stacksAddressNo:'SP00000000000000DSQJTCHE66XE1NHQ',bitcoinAddressYes:'11111111111111X6zHB1ZC2FmtnqJ',bitcoinAddressNo:'1111111111111117CrbcZgemVNFx8', sip:true },links: [ { name: 'Stacks Upgrade of Proof-of-Transfer and Clarity',  href: 'https://github.com/stacksgov/sips/blob/main/sips/sip-015/sip-015-network-upgrade.md', display: 'sip-015-network-upgrade',  target: '_blank', }]}}, upsert: false, new: true, fields: {proposal: 1, event: 1}})
-```
 
 for testing..
 
@@ -38,7 +39,7 @@ db.tentativeProposalCollection.insert( { visible: true, 'tag' : 'ST1PQHQKV0RJXZF
 
 1. Read Base DAO Events
 
-```
+```rest
 /read-events-base-dao/:daoContractId
 ```
 
@@ -46,5 +47,3 @@ where dao contract is
 
 - SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.bitcoin-dao (nakamoto)
 - SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.ecosystem-dao (2.1 upgrade)
-
-

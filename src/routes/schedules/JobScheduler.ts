@@ -1,7 +1,6 @@
 import cron from 'node-cron';
 import { getDaoConfig } from '../../lib/config_dao';
 import { readDaoEvents } from '../../lib/events/event_helper_base_dao';
-import { readPox4Events } from '../pox4/pox-events/pox4_events_helper';
 import { scanVoting } from '../../lib/events/event_helper_voting_contract';
 
 // 10 mins past every fourth hour: 10 */4 * * *' 

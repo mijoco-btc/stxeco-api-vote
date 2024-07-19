@@ -114,6 +114,7 @@ async function processEvent(event:any, daoContract:string, votingContract:string
   if (result.value.event.value === 'propose') {
 
     const proposal = result.value.proposal.value
+
     let contract:ProposalContract = await getProposalContractSource(proposal)
     //console.log('resolveExtensionEvents: execute: ', util.inspect(event, false, null, true /* enable colors */))
     const votingContractEvent = {
