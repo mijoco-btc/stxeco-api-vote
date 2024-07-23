@@ -13,13 +13,8 @@
     cycle: 88
  */
 import express from "express";
-import { readSoloVote } from "../dao/solo_votes";
-import { fetchProposeEvent } from "../../lib/events/event_helper_voting_contract";
-import { getPoxInfo, VoteEvent, VotingEventProposeProposal } from "@mijoco/stx_helpers/dist/index";
-import { getSummary } from "../../lib/events/proposal";
-import { saveStackerBitcoinTxs, saveStackerStacksTxs } from "../../lib/stacker-votes/tally";
-import { findProposalVotesByProposalAndSource, findVoteByProposalAndVoter } from "../dao/vote_count_helper";
-import { findRewardSlotByAddress, findRewardSlotByAddressMinHeight, findRewardSlotByCycle, getRewardsByAddress, readAllRewardSlots, readRewardSlots } from "./reward_slots/reward_slot_helper";
+import { getPoxInfo } from "@mijoco/stx_helpers/dist/index";
+import { findRewardSlotByAddress, findRewardSlotByAddressMinHeight, findRewardSlotByCycle, getRewardsByAddress, readAllRewardSlots, readRewardSlots } from "./reward-slots/reward_slot_helper";
 import { getConfig } from "../../lib/config";
 
 const router = express.Router();

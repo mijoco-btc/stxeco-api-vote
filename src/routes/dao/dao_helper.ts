@@ -6,7 +6,7 @@ import { hex } from '@scure/base';
 import { getConfig } from '../../lib/config';
 import { findProposalByContractId, saveOrUpdateProposal } from '../../lib/data/db_models';
 import { getDaoConfig } from '../../lib/config_dao';
-import { countsVotesByMethod, saveOrUpdateVote } from './vote_count_helper';
+import { countsVotesByMethod, saveOrUpdateVote } from '../voting/stacker-voting/vote_count_helper';
 import { FundingData, GovernanceData, NFTHolding, NFTHoldings, ProposalContract, ProposalData, ProposalEvent, ProposalStage, SignalData, SubmissionData, TentativeProposal, VoteEvent, VotingEventProposeProposal, callContractReadOnly, fetchDataVar } from '@mijoco/stx_helpers/dist/index';
 import { fetchProposeEvent } from '../../lib/events/event_helper_voting_contract';
 import { getFunding, getMetaData, getProposalContractSource, getProposalData } from '../../lib/events/proposal';
@@ -14,13 +14,6 @@ import { getFunding, getMetaData, getProposalContractSource, getProposalData } f
 let uris:any = {};
 const gateway = "https://hashone.mypinata.cloud/";
 const gatewayAr = "https://arweave.net/";
-
-export async function getStacksInfo() {
-  const url = getConfig().stacksApi + '/v2/info';
-  console.log('getStacksInfo: ' + url)
-  const response = await fetch(url)
-  return await response.json();
-}
 
 async function getNftHoldingsByPage(stxAddress:string, limit:number, offset:number):Promise<any> {
   const url = getConfig().stacksApi + '/extended/v1/tokens/nft/holdings?principal=' + stxAddress + '&limit=' + limit + '&offset=' + offset;
@@ -188,92 +181,6 @@ export async function getProposalsByTrait() {
       console.log('callContractReadOnly4: ', err);
   }
   return edaoProposals;
-}
-
-export async function getProposalsForActiveVotingExt(votingContractId:string) {
-  const url = getConfig().stacksApi + '/extended/v1/contract/' + votingContractId + '/events?limit=' + 20;
-  const proposals: Array<ProposalEvent> = [];
-  let currentOffset = await countsVotesByMethod('vote')
-  console.log('getProposalsForActiveVotingExt: currentOffset:' + currentOffset)
-  if (!currentOffset) currentOffset = 0
-  let count = 0;
-  let moreEvents = true
-  try {
-    do {
-      try {
-        moreEvents = await innerProposalsForActiveVotingExt(url, currentOffset, count, votingContractId)
-        count++;
-      } catch (err:any) {
-        console.log('getProposalsForActiveVotingExt: ' + url)
-        console.log('getProposalsForActiveVotingExt: ' + err.message)
-      }
-    }
-    while (moreEvents)
-  }
-  catch (err:any) {
-      console.log('callContractReadOnly4: ', err);
-  }
-  return proposals;
-}
-
-async function innerProposalsForActiveVotingExt(url:string, currentOffset:number, currentCount:number, votingContractId:string):Promise<any> {
-  let urlOffset = url + '&offset=' + (currentOffset + (currentCount * 20))
-  const response = await fetch(urlOffset);
-  const val = await response.json();
-  console.log('innerProposalsForActiveVotingExt: url: ' + urlOffset)
-  console.log('innerProposalsForActiveVotingExt: cnt: ' + val.results?.length || -1)
-  for (const event of val.results) {
-    try {
-      const result = cvToJSON(deserializeCV(event.contract_log.value.hex));
-      const submissionData = await getSubmissionData(event.tx_id)
-      if (result.value.event.value === 'propose') {
-        const proposalData = await getProposalData(votingContractId, result.value.proposal.value)
-        const contract = await getProposalContractSource(result.value.proposal.value)
-        let funding:FundingData|undefined
-        try {
-          funding = await getFunding(submissionData.contractId, result.value.proposal.value)
-        } catch (err:any) {
-          console.error('innerProposalsForActiveVotingExt no funding data')
-        }
-        //const signals = await getSignals(result.value.proposal.value)
-        const executedAt = await getExecutedAt(result.value.proposal.value)
-        const proposal = {
-          event: 'propose',
-          proposer: result.value.proposer.value,
-          contractId: result.value.proposal.value,
-          proposalData,
-          contract,
-          submitTxId: event.tx_id,
-          proposalMeta: getMetaData(contract.source),
-          votingContract: event.contract_log.contract_id,
-          submissionData,
-          funding,
-          //signals,
-          executedAt,
-          stage: ProposalStage.PROPOSED
-        } as ProposalEvent
-        await saveOrUpdateProposal(proposal)
-      } else if (result.value.event.value === 'vote') {
-        const vote = {
-          event: 'vote',
-          votingContractId,
-          proposalContractId: result.value.proposal.value,
-          voter: result.value.voter.value,
-          for: result.value.for.value,
-          amount: Number(result.value.amount.value),
-          submitTxId: event.tx_id,
-        } as VoteEvent
-        await saveOrUpdateVote(vote)
-      } else if (result.value.event.value === 'conclude') {
-        const prop = await findProposalByContractId(result.value.proposal.value)
-        prop.stage = ProposalStage.CONCLUDED
-        await saveOrUpdateVote(prop)
-      }
-    } catch (err:any) {
-      console.log('innerProposalsForActiveVotingExt: ' + err.message)
-    }
-  }
-  return val.results?.length > 0 || false
 }
 
 export async function getProposalFromContractId(contractId:string):Promise<ProposalEvent|undefined> {
@@ -487,19 +394,6 @@ export async function getTransaction(tx:string):Promise<any> {
   }
   catch (err:any) {
       console.log('getTransaction: ', err);
-  }
-  return val;
-}
-
-export async function getBalanceAtHeight(stxAddress:string, height: number):Promise<any> {
-  const url = getConfig().stacksApi + '/extended/v1/address/' + stxAddress + '/balances?until_block=' + height
-  let val;
-  try {
-      const response = await fetch(url)
-      val = await response.json();
-  }
-  catch (err:any) {
-      console.log('getBalanceAtHeight: ', err);
   }
   return val;
 }

@@ -6,11 +6,13 @@ import { getConfig } from '../../../lib/config';
 import { poolStackerEventsCollection } from '../../../lib/data/db_models';
 import util from 'util'
 import { DelegationAggregationIncrease, DelegationStackExtend, DelegationStackIncrease, DelegationStackStx, DelegationStx, HandleUnlock, PoolStackerEvent, PoxAddress, StackExtend, StackIncrease, StackStx } from '@mijoco/stx_helpers/dist/index';
+import { RevokeDelegateStx } from '@mijoco/stx_helpers/dist/pox_types';
 
 
-export async function readPoolStackerEvents() {
-  const url = getConfig().stacksApi + '/extended/v1/contract/' + getConfig().poxContractId! + '/events?limit=' + 20;
-  let currentOffset = await countsPoolStackerEvents()
+export async function readPoolStackerEvents(poxContractName:string) {
+  const poxContract = `${getConfig().poxContractId?.split('.')[0]}.${poxContractName}`
+  const url = `${getConfig().stacksApi}/extended/v1/contract/${poxContract}/events?limit=20`;
+  let currentOffset = await countsPoolStackerEvents(poxContractName)
   if (!currentOffset) currentOffset = 0
   let count = 0;
   let moreEvents = true
@@ -20,8 +22,8 @@ export async function readPoolStackerEvents() {
         let urlOffset = url + '&offset=' + (currentOffset + (count * 20))
         const response = await fetch(urlOffset);
         const val = await response.json();
-        console.log('innerReadPoolStackerEvents: reading more: ' + urlOffset)
-        moreEvents = await innerReadPoolStackerEvents(val)
+        console.log('readPoolStackerEvents: reading more: ' + urlOffset)
+        moreEvents = await innerReadPoolStackerEvents(val, poxContractName)
         count++;
       } catch (err:any) {
         console.log('readPoolStackerEvents: ' + url)
@@ -30,11 +32,11 @@ export async function readPoolStackerEvents() {
     while (moreEvents)
   }
   catch (err:any) {
-      console.log('callContractReadOnly4: ', err);
+      console.log('readPoolStackerEvents: ', err);
   }
 }
 
-async function innerReadPoolStackerEvents(val:any):Promise<any> {
+async function innerReadPoolStackerEvents(val:any, poxContractName:string):Promise<any> {
   let stackerEvent:PoolStackerEvent;
   let result:any;
   if (!val || !val.results || val.results.length === 0) {
@@ -54,9 +56,10 @@ async function innerReadPoolStackerEvents(val:any):Promise<any> {
         locked: Number(result.locked.value),
         balance: Number(result.balance.value),
         stacker: result.stacker.value,
+        poxContractName
       } as any
 
-      let data:DelegationStx|DelegationAggregationIncrease|DelegationStackExtend|DelegationStackStx|DelegationStackIncrease|StackStx|StackIncrease|StackExtend|HandleUnlock = {} as DelegationStx
+      let data:DelegationStx|RevokeDelegateStx|DelegationAggregationIncrease|DelegationStackExtend|DelegationStackStx|DelegationStackIncrease|StackStx|StackIncrease|StackExtend|HandleUnlock = {} as DelegationStx
       if (eventName === 'stack-aggregation-increase') {
         data = {
           amountUstx: Number(result.data.value['amount-ustx'].value),
@@ -144,6 +147,13 @@ async function innerReadPoolStackerEvents(val:any):Promise<any> {
           poxAddr: extractPoxAddress(result.data.value['pox-addr']),
           firstUnlockedCycle: Number(result.data.value['first-unlocked-cycle'].value),
         }
+      } else if (eventName === 'revoke-delegate-stx') {
+        data = {
+          amountUstx:0,
+          delegator: result.data.value['delegate-to'].value,
+          startCycleId: Number(result.data?.value['start-cycle-id']?.value || 0),
+          endCycleId: Number(result.data?.value['end-cycle-id']?.value || 0),
+        }
       } else {
         console.log('innerReadPoolStackerEvents: missed: ', util.inspect(result, false, null, true /* enable colors */));
       }
@@ -168,52 +178,52 @@ function extractPoxAddress(result: any):PoxAddress {
   }
 }
 
-export async function countsPoolStackerEvents():Promise<number> {
+export async function countsPoolStackerEvents(poxContractName:string):Promise<number> {
   try {
-    const result = await poolStackerEventsCollection.countDocuments();
+    const result = await poolStackerEventsCollection.countDocuments({poxContractName});
     return Number(result);
   } catch (err:any) {
     return 0
   }
 }
 
-export async function findPoolStackerEventsByHashBytes(hashBytes:string, page:number, limit:number):Promise<any> {
+export async function findPoolStackerEventsByHashBytes(hashBytes:string, page:number, limit:number):Promise<Array<PoolStackerEvent>> {
   if (!hashBytes.startsWith('0x')) hashBytes = '0x' + hashBytes
   const result = await poolStackerEventsCollection.find({"data.poxAddr.hashBytes":hashBytes}).skip(page * limit).limit( limit ).toArray();
-  return result;
+  return result as unknown as Array<PoolStackerEvent>;
 }
 
-export async function findPoolStackerEventsByHashBytesAndEvent(hashBytes:string, event:string):Promise<any> {
+export async function findPoolStackerEventsByHashBytesAndEvent(hashBytes:string, event:string):Promise<Array<PoolStackerEvent>> {
   if (!hashBytes.startsWith('0x')) hashBytes = '0x' + hashBytes
   const result = await poolStackerEventsCollection.find({"data.poxAddr.hashBytes":hashBytes, event}).toArray();
-  return result;
+  return result as unknown as Array<PoolStackerEvent>;
 }
 
-export async function findPoolStackerEventsByHashBytesAndVersion(version:string, hashBytes:string, page:number, limit:number):Promise<any> {
+export async function findPoolStackerEventsByHashBytesAndVersion(version:string, hashBytes:string, page:number, limit:number):Promise<Array<PoolStackerEvent>> {
   if (!hashBytes.startsWith('0x')) hashBytes = '0x' + hashBytes
   if (!version.startsWith('0x')) version = '0x' + version
   const result = await poolStackerEventsCollection.find({"data.poxAddr.hashBytes":hashBytes, "data.poxAddr.version":version, }).skip(page * limit).limit( limit ).toArray();
-  return result;
+  return result as unknown as Array<PoolStackerEvent>;
 }
 
-export async function findPoolStackerEventsByStacker(stacker:string):Promise<any> {
+export async function findPoolStackerEventsByStacker(stacker:string):Promise<Array<PoolStackerEvent>> {
   const result = await poolStackerEventsCollection.find({"stacker":stacker}).toArray();
-  return result;
+  return result as unknown as Array<PoolStackerEvent>;
 }
 
-export async function findPoolStackerEventsByDelegator(stacker:string):Promise<any> {
+export async function findPoolStackerEventsByDelegator(stacker:string):Promise<Array<PoolStackerEvent>> {
   const result = await poolStackerEventsCollection.find({"data.delegator":stacker}).toArray();
-  return result;
+  return result as unknown as Array<PoolStackerEvent>;
 }
 
-export async function findPoolStackerEventsByStackerAndEvent(stacker:string, event:string):Promise<any> {
+export async function findPoolStackerEventsByStackerAndEvent(stacker:string, event:string):Promise<Array<PoolStackerEvent>> {
   const result = await poolStackerEventsCollection.find({stacker:stacker, event: event}).toArray();
-  return result;
+  return result as unknown as Array<PoolStackerEvent>;
 }
 
-export async function findPoolStackerEventsBySubmitTxId(criteria:any):Promise<any> {
+export async function findPoolStackerEventsBySubmitTxId(criteria:any):Promise<PoolStackerEvent> {
   const result = await poolStackerEventsCollection.findOne(criteria);
-  return result;
+  return result as unknown as PoolStackerEvent;
 }
 
 export async function saveOrUpdatePoolStackerEvent(v:PoolStackerEvent) {

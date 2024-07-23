@@ -322,7 +322,7 @@ async function saveDaoEvent(proposal:VotingEventVoteOnProposal|VotingEventConclu
 
 async function updateDaoEvent(_id:ObjectId, changes: VotingEventVoteOnProposal|VotingEventConcludeProposal|VotingEventProposeProposal) {
 	const result = await votingContractEventCollection.updateOne({
-		_id: new ObjectId(_id)
+		_id
 	},
   { $set: changes});
 	return result;

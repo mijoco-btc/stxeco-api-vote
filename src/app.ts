@@ -15,7 +15,7 @@ import { getExchangeRates, rateRoutes, updateExchangeRates } from './routes/rate
 import { pox3Routes } from './routes/voting/poxRoutes'
 import { connect } from './lib/data/db_models';
 import { setDaoConfigOnStart } from './lib/config_dao';
-import { initScanDaoEventsJob, initScanVotingEventsJob, pox4EventsJob } from './routes/schedules/JobScheduler';
+import { initPoolStackerEvents, initScanDaoEventsJob, initScanVotingEventsJob } from './routes/schedules/JobScheduler';
 
 if (process.env.NODE_ENV === 'development') {
   dotenv.config();
@@ -79,7 +79,7 @@ async function connectToMongoCloud() {
   });
 
   const wss = new WebSocketServer({ server })
-  pox4EventsJob.start();
+  initPoolStackerEvents.start();
   initScanDaoEventsJob.start();
   initScanVotingEventsJob.start();
 

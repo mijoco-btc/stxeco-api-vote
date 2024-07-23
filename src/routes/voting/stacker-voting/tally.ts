@@ -1,17 +1,142 @@
 import { fetchAddressTransactions, getHashBytesFromAddress } from '@mijoco/btc_helpers/dist/index';
-import { StackerInfo, type VoteEvent, type VotingEventProposeProposal } from '@mijoco/stx_helpers/dist/index';
-import { getConfig } from '../config';
-import { saveVote } from '../../routes/dao/vote_count_helper';
-import { findPoxEntriesByAddressAndCycle, findPoxEntryByCycleAndIndex } from './pox_entries';
-import { getStackerInfoFromContract } from '@mijoco/stx_helpers/dist/pox/pox';
+import { Delegation, getBalanceAtHeight, StackerInfo, type VoteEvent, type VotingEventProposeProposal } from '@mijoco/stx_helpers/dist/index';
+import { getBurnHeightToRewardCycle, getCheckDelegation, getStackerInfoFromContract } from '@mijoco/stx_helpers/dist/pox/pox';
+import { getConfig } from '../../../lib/config';
+import { findStackerVotesByProposal, saveVote, updateVote } from './vote_count_helper';
+import { findPoxEntriesByAddressAndCycle, findPoxEntryByCycleAndIndex } from '../pox-entries/pox_helper';
 
 const limit = 50 ;
 const PRE_NAKAMOTO_STACKS_TIP_HEIGHT = 850850
+const stxPrecision = 1000000
 
-export async function reconcileVote(proposal:VotingEventProposeProposal, voteEvent:VoteEvent):Promise<any> {
-  if (voteEvent.source === 'bitcoin') {
-    const result = await determineTotalAverageUstx(voteEvent.voter)
+export async function reconcileVotes(proposal:VotingEventProposeProposal):Promise<any> {
+  const burnStartHeight = proposal.stackerData?.heights?.burnStart || proposal.proposalData.burnStartHeight
+  const cycle1CV = (proposal.stackerData) ? await getBurnHeightToRewardCycle(getConfig().stacksApi, getConfig().poxContractId!, burnStartHeight + 200) : undefined
+  const cycle1 = Number(cycle1CV.cycle.value)
+
+  const votes = await findStackerVotesByProposal(proposal.proposal);
+  for (const vote of votes) {
+    if (vote.source === 'stacks') {
+      try {
+        await reconcileVoteViaStacks(proposal, vote)
+      } catch(err:any) {
+        console.error('reconcileVotes: reconcileVoteViaStacks: error: ' + err.message)
+      }
+    } else if (vote.source === 'bitcoin') {
+      try {
+        await reconcileVoteViaBitcoin(proposal, cycle1, vote)
+      } catch(err:any) {
+        console.error('reconcileVotes: reconcileVoteViaStacks: error: ' + err.message)
+      }
+    } else {
+      console.log('reconcileVotes: unknown source', vote)
+    }
   }
+  //if (voteEvent.source === 'bitcoin') {
+  //   const result = await determineTotalAverageUstx(voteEvent.voter)
+  //}
+}
+
+export async function reconcileVotesPerStacker(proposal:VotingEventProposeProposal, voter:string):Promise<any> {
+}
+
+export async function reconcileViaLocked(proposal:VotingEventProposeProposal, voter:string) {
+  let counter = 0
+  let balanceAtHeight = await getBalanceAtHeight(getConfig().stacksApi, voter, proposal.proposalData.startBlockHeight + 2200)
+  //console.log('reconcileViaLocked: ------>' + balanceAtHeight.stx?.locked || 0)
+  const locked1 = (Number(balanceAtHeight.stx?.locked || 0))
+  if (locked1 > 0) counter++
+  balanceAtHeight = await getBalanceAtHeight(getConfig().stacksApi, voter, proposal.proposalData.startBlockHeight + 200)
+  const locked2 = (Number(balanceAtHeight.stx?.locked || 0))
+  //console.log('reconcileViaLocked: ------>' + balanceAtHeight.stx?.locked || 0)
+  if (locked2 > 0) counter++
+  const locked = (counter > 0) ? ((locked1 + locked2) / counter) : 0
+  //console.log(locked)
+  return locked
+}
+export function fmtStxMicro(amountStx:number) {
+  const formatted = parseFloat(amountStx.toFixed(6));
+  // Multiply by 10^6 and convert to integer
+  const integer = Math.round(formatted * 1000000);
+  return integer; 
+
+  //return  (Math.round(amountStx) * stxPrecision *stxPrecision) / stxPrecision
+}
+
+
+export async function reconcileVoteViaStacks(proposal:VotingEventProposeProposal, vote:VoteEvent) {
+  let locked = await reconcileViaLocked(proposal, vote.voter)
+  let changes = {
+    amount: locked,
+    event: 'pool-vote'
+  }
+  /**
+  let amountUstx = 0
+  let stackerDel:Delegation = await getStackerInfoFromContract(getConfig().stacksApi,getConfig().poxContractId!, vote.voter, proposal.proposalData.startBlockHeight + 2200)
+  let balanceAtHeight = await getBalanceAtHeight(getConfig().stacksApi, vote.voter, proposal.proposalData.startBlockHeight + 2200)
+  if (stackerDel.amountUstx > 0) {
+    amountUstx += stackerDel.amountUstx
+    counter++
+  }
+  stackerDel = await getCheckDelegation(getConfig().stacksApi,getConfig().poxContractId!, vote.voter, proposal.proposalData.startBlockHeight + 200)
+  if (stackerDel.amountUstx > 0) {
+    amountUstx += stackerDel.amountUstx
+    counter++
+  }
+  if (counter === 0) return
+
+  console.log('reconcileVote: stacks stacker: vote: ' + vote.voter, stackerDel)
+  changes.amount = amountUstx / counter
+  if (stackerDel.delegatedTo) {
+    changes.event = 'pool-vote'
+    changes.delegateTo = stackerDel.delegatedTo
+  } else {
+    changes.event = 'solo-vote'
+    changes.poxAddr = (stackerDel.poxAddr && stackerDel.poxAddr.version) ? stackerDel.poxAddr : undefined
+  }
+  */
+
+  vote = (await updateVote(vote, changes)) as unknown as VoteEvent
+  console.log('reconcileVote: updated stacks vote: amount: ' + vote.amount + ' voter: '  + vote.voter)
+}
+
+export async function reconcileVoteViaBitcoin(proposal:VotingEventProposeProposal, cycle1:number, vote:VoteEvent) {
+  let counter = 0
+  let amountUstx = 0
+  let changes = {} as any
+
+  const totalUstxInCycle1 = (await getTotalStackedInCycle(vote.voter, cycle1) || 0);
+  const totalUstxInCycle2 = (await getTotalStackedInCycle(vote.voter, (cycle1+1)) || 0);
+
+  if (totalUstxInCycle1 > 0) {
+    amountUstx += totalUstxInCycle1
+    counter++
+  }
+  if (totalUstxInCycle2 > 0) {
+    amountUstx += totalUstxInCycle2
+    counter++
+  }
+  if (counter === 0) return
+
+  changes.amount = amountUstx / counter
+  changes.event = 'solo-vote'
+
+  vote = (await updateVote(vote, changes)) as unknown as VoteEvent
+  console.log('reconcileVote: updated bitcoin vote: amount: ' + vote.amount + ' voter: '  + vote.voter)
+}
+
+async function getTotalStackedInCycle(voter:string, cycle1:number) {
+  const poxEntries:Array<any> = await findPoxEntriesByAddressAndCycle(voter, cycle1);
+  let totalUstx = 0
+  const soloStackers = []
+  for (const entry of poxEntries) {
+    if (entry.delegations === 0) {
+      // not a pool operator
+      totalUstx += entry.totalUstx
+      //soloStackers.push(entry)
+    }
+  }
+  return totalUstx
 }
 
 export async function saveStackerBitcoinTxs(proposal:VotingEventProposeProposal):Promise<{bitcoinTxsYes:Array<VoteEvent> , bitcoinTxsNo:Array<VoteEvent>}> {
@@ -127,7 +252,7 @@ async function convertStacksTxsToVotes(proposal:VotingEventProposeProposal, txs:
       reconciled: false
     }
     try { 
-      await saveVote(potVote) 
+      await saveVote(potVote)
       console.log('convertStacksTxsToVotes: saved vote from voter:' + potVote.voter)
       votes.push(potVote)
     } catch(err:any) {

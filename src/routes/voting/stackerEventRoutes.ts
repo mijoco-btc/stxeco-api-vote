@@ -1,5 +1,8 @@
 /**
- * Stacker event routes are the history of stacking calls.
+ * Stacker events are the history of stacking calls.
+ * 
+ * The stacker events need to be read back to a few cycles before the
+ * first (sip 2.1 upgrade) vote.
  * 
  * e.g. Structure of delegate-stack-extend:
  * mongo: db.poolStackerEventsCollection.find()
@@ -20,6 +23,7 @@
         hashBytes: '0x83ed66860315e334010bbfb76eb3eef887efee0a'
       }
     }
+  
  *  There are 11 distinct event types;
     mongo: db.poolStackerEventsCollection.distinct('event')
       'delegate-stack-extend',
@@ -35,80 +39,127 @@
       'stack-stx'
  */
 import express from "express";
-import { findPoolStackerEventsByDelegator, findPoolStackerEventsByHashBytes, findPoolStackerEventsByStacker, findPoolStackerEventsByStackerAndEvent, readPoolStackerEvents } from "./stacker-events/pool_stacker_events_helper";
+import {
+  findPoolStackerEventsByDelegator,
+  findPoolStackerEventsByHashBytes,
+  findPoolStackerEventsByStacker,
+  findPoolStackerEventsByStackerAndEvent,
+  readPoolStackerEvents,
+} from "./stacker-events/pool_stacker_events_helper";
 
 const router = express.Router();
 
-router.get("/sync/stacker-events", async (req, res, next) => {
+router.get("/sync/stacker-events/pox", async (req, res, next) => {
   try {
-    readPoolStackerEvents();
-    return res.send('syncing data');
+    readPoolStackerEvents("pox");
+    return res.send("syncing data");
   } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching sbtc data.')
+    console.log("Error in routes: ", error);
+    next("An error occurred fetching sbtc data.");
   }
 });
 
-
-router.get("/sync/delegation-events/:poolPrincipal/:offset/:limit", async (req, res, next) => {
+router.get("/sync/stacker-events/pox-2", async (req, res, next) => {
   try {
-    //const response = await readDelegationEvents(getConfig().stacksApi,getConfig().poxContractId!, req.params.poolPrincipal, Number(req.params.offset), Number(req.params.limit));
-    return res.send('readDelegationEvents?');
+    readPoolStackerEvents("pox-2");
+    return res.send("syncing data");
   } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching pox-info.')
+    console.log("Error in routes: ", error);
+    next("An error occurred fetching sbtc data.");
   }
 });
 
-router.get("/stacker-events-by-hashbytes/:hashBytes/:page/:limit", async (req, res, next) => {
+router.get("/sync/stacker-events/pox-3", async (req, res, next) => {
   try {
-    const response = await findPoolStackerEventsByHashBytes(req.params.hashBytes, Number(req.params.page), Number(req.params.limit));
-    return res.send(response);
+    readPoolStackerEvents("pox-3");
+    return res.send("syncing data");
   } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching sbtc data.')
+    console.log("Error in routes: ", error);
+    next("An error occurred fetching sbtc data.");
   }
-})
+});
+
+router.get("/sync/stacker-events/pox-4", async (req, res, next) => {
+  try {
+    readPoolStackerEvents("pox-4");
+    return res.send("syncing data");
+  } catch (error) {
+    console.log("Error in routes: ", error);
+    next("An error occurred fetching sbtc data.");
+  }
+});
+
+router.get(
+  "/sync/delegation-events/:poolPrincipal/:offset/:limit",
+  async (req, res, next) => {
+    try {
+      //const response = await readDelegationEvents(getConfig().stacksApi,getConfig().poxContractId!, req.params.poolPrincipal, Number(req.params.offset), Number(req.params.limit));
+      return res.send("readDelegationEvents?");
+    } catch (error) {
+      console.log("Error in routes: ", error);
+      next("An error occurred fetching pox-info.");
+    }
+  }
+);
+
+router.get(
+  "/stacker-events-by-hashbytes/:hashBytes/:page/:limit",
+  async (req, res, next) => {
+    try {
+      const response = await findPoolStackerEventsByHashBytes(
+        req.params.hashBytes,
+        Number(req.params.page),
+        Number(req.params.limit)
+      );
+      return res.send(response);
+    } catch (error) {
+      console.log("Error in routes: ", error);
+      next("An error occurred fetching sbtc data.");
+    }
+  }
+);
 
 router.get("/stacker-events-by-stacker/:address", async (req, res, next) => {
   try {
     const response = await findPoolStackerEventsByStacker(req.params.address);
     return res.send(response);
   } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching sbtc data.')
+    console.log("Error in routes: ", error);
+    next("An error occurred fetching sbtc data.");
   }
-})
+});
 
 router.get("/stacker-events-by-delegator/:address", async (req, res, next) => {
   try {
     const response = await findPoolStackerEventsByDelegator(req.params.address);
     return res.send(response);
   } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching sbtc data.')
+    console.log("Error in routes: ", error);
+    next("An error occurred fetching sbtc data.");
   }
-})
+});
 
 router.get("/pool-stacker-events/:stacker", async (req, res, next) => {
   try {
     const response = await findPoolStackerEventsByStacker(req.params.stacker);
     return res.send(response);
   } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching sbtc data.')
+    console.log("Error in routes: ", error);
+    next("An error occurred fetching sbtc data.");
   }
 });
 
 router.get("/pool-stacker-events/:stacker/:event", async (req, res, next) => {
   try {
-    const response = await findPoolStackerEventsByStackerAndEvent(req.params.stacker, req.params.event);
+    const response = await findPoolStackerEventsByStackerAndEvent(
+      req.params.stacker,
+      req.params.event
+    );
     return res.send(response);
   } catch (error) {
-    console.log('Error in routes: ', error)
-    next('An error occurred fetching sbtc data.')
+    console.log("Error in routes: ", error);
+    next("An error occurred fetching sbtc data.");
   }
 });
 
-
-export { router as stackerEventRoutes }
+export { router as stackerEventRoutes };

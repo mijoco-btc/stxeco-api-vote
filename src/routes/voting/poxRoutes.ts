@@ -16,12 +16,11 @@
     delegations: 0
  */
 import express from "express";
-import { collateStackerInfo, extractAllPoxEntriesInCycle, findPoxEntriesByAddress, findPoxEntriesByCycle, getPoxBitcoinAddressInfo } from "./pox_entries/pox_helper";
+import { collateStackerInfo, extractAllPoxEntriesInCycle, findPoxEntriesByAddress, findPoxEntriesByCycle, getPoxBitcoinAddressInfo, readPoxEntriesFromContract, readSavePoxEntries } from "./pox-entries/pox_helper";
 import { getConfig } from "../../lib/config";
 import { getAllowanceContractCallers, getPoxCycleInfo, getStackerInfoFromContract } from "@mijoco/stx_helpers/dist/pox/pox";
 import { getPoxInfo } from "@mijoco/stx_helpers/dist/index";
 import { getAddressFromHashBytes, getHashBytesFromAddress } from "@mijoco/btc_helpers/dist/index";
-import { readPoxEntriesFromContract, readSavePoxEntries } from "../../lib/stacker-votes/pox_entries";
 
 const router = express.Router();
 

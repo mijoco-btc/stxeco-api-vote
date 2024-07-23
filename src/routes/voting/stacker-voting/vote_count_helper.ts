@@ -1,5 +1,6 @@
-import { stackerVotes } from "../../lib/data/db_models"
-import { VoteEvent } from "@mijoco/stx_helpers/dist/index"
+import { ObjectId } from "mongodb";
+import { stackerVotes } from "../../../lib/data/db_models"
+import { VoteEvent, VotingEventConcludeProposal, VotingEventProposeProposal, VotingEventVoteOnProposal } from "@mijoco/stx_helpers/dist/index"
 
 const NAKAMOTO_VOTE_START_HEIGHT = 829750 + 100
 const NAKAMOTO_VOTE_STOPS_HEIGHT = 833950
@@ -40,44 +41,49 @@ export async function countsVotesByProposalAndMethod(proposalContractId:string, 
     }
   }
   
-  export async function findProposalVotesByProposal(proposalContractId:string):Promise<any> {
+  export async function findStackerVotesByProposal(proposalContractId:string):Promise<Array<VoteEvent>> {
     const result = await stackerVotes.find({"proposalContractId":proposalContractId}).toArray();
-    return result;
+    return result as unknown as Array<VoteEvent>;
   }
   
-  export async function findProposalVotesByProposalAndSource(proposalContractId:string, source:string):Promise<any> {
+  export async function findStackerVotesByProposalAndSource(proposalContractId:string, source:string):Promise<Array<VoteEvent>> {
     const result = await stackerVotes.find({"proposalContractId":proposalContractId, source}).toArray();
-    return result;
+    return result as unknown as Array<VoteEvent>;
   }
   
-  export async function findVotesByProposalAndMethod(proposal:string, method:string):Promise<any> {
+  export async function findStackerVotesByProposalAndMethod(proposal:string, method:string):Promise<Array<VoteEvent>> {
     const result = await stackerVotes.find({"proposalContractId":proposal, "event":method}).toArray();
-    return result;
+    return result as unknown as Array<VoteEvent>;
   }
   
-  export async function findVotesBySoloZeroAmounts():Promise<any> {
+  export async function findStackerVotesBySoloZeroAmounts():Promise<Array<VoteEvent>> {
     const result = await stackerVotes.find({"amount":0, "event":'solo-vote'}).toArray();
-    return result;
+    return result as unknown as Array<VoteEvent>;
   }
   
-  export async function findVoteByProposalAndVoter(proposalContractId:string, voter:string):Promise<VoteEvent|undefined> {
+  export async function findStackerVoteByProposalAndVoter(proposalContractId:string, voter:string):Promise<VoteEvent> {
     const result = await stackerVotes.findOne({"proposalContractId":proposalContractId, "voter":voter})
     return result as unknown as VoteEvent;
   }
   
-  export async function findVotesByVoter(voter:string):Promise<any> {
+  export async function findStackerVotesByVoter(voter:string):Promise<Array<VoteEvent>> {
     const result = await stackerVotes.find({"voter":voter}).toArray();
-    return result;
+    return result as unknown as Array<VoteEvent>;
   }
   
-  export async function findVoteBySubmitTxId(submitTxId:string):Promise<any> {
+  export async function findStackerVoteById(_id:ObjectId):Promise<VoteEvent> {
+    const result = await stackerVotes.findOne({_id});
+    return result as unknown as VoteEvent;
+  }
+  
+  export async function findStackerVoteBySubmitTxId(submitTxId:string):Promise<VoteEvent> {
     const result = await stackerVotes.findOne({"submitTxId":submitTxId});
-    return result;
+    return result as unknown as VoteEvent;
   }
   
   export async function saveOrUpdateVote(v:VoteEvent) {
     try {
-      const pdb = await findVoteBySubmitTxId(v.submitTxId)
+      const pdb = await findStackerVoteBySubmitTxId(v.submitTxId)
       if (pdb) {
         console.log('saveOrUpdateVote: updating: amount: ' + v.amount + ' for: ' + v.for);
         await updateVote(pdb, v)
@@ -90,17 +96,19 @@ export async function countsVotesByProposalAndMethod(proposalContractId:string, 
     }
   }
   
-  export async function saveVote(vote:any) {
+  export async function saveVote(vote:VoteEvent) {
+    vote._id = new ObjectId()
     const result = await stackerVotes.insertOne(vote);
     return result;
   }
   
-  export async function updateVote(vote:any, changes: any) {
+  export async function updateVote(vote:VoteEvent, changes: any) {
     const result = await stackerVotes.updateOne({
       _id: vote._id
     },
       { $set: changes});
-    return result;
+    vote = await findStackerVoteById(vote._id)
+    return vote;
   }
   
 

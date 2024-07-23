@@ -1,10 +1,11 @@
 import { poxAddressInfo, stackerVotes } from "../../../lib/data/db_models";
 import { getConfig } from "../../../lib/config";
-import { getRewardsByAddress } from "../reward_slots/reward_slot_helper";
+import { getRewardsByAddress } from "../reward-slots/reward_slot_helper";
 import { findPoolStackerEventsByHashBytesAndVersion, findPoolStackerEventsByStacker } from '../stacker-events/pool_stacker_events_helper';
 import { type PoolStackerEvent, type PoxAddress, type PoxEntry, type StackerInfo, type StackerStats, type VoteEvent } from '@mijoco/stx_helpers/dist/index';
-import { getPartialStackedByCycle, getPoxCycleInfo, getStackerInfoFromContract } from '@mijoco/stx_helpers/dist/pox/index';
-import { getHashBytesFromAddress } from '@mijoco/btc_helpers/dist/index';
+import { getNumbEntriesRewardCyclePoxList, getPartialStackedByCycle, getPoxCycleInfo, getRewardSetPoxAddress, getStackerInfoFromContract } from '@mijoco/stx_helpers/dist/pox/index';
+import { getAddressFromHashBytes, getHashBytesFromAddress } from '@mijoco/btc_helpers/dist/index';
+import { findStackerVotesByVoter } from "../stacker-voting/vote_count_helper";
 
 export async function getPoxBitcoinAddressInfo(address:string, cycle:number, sender:string):Promise<any> {
   return {
@@ -12,15 +13,84 @@ export async function getPoxBitcoinAddressInfo(address:string, cycle:number, sen
   };
 }
 
+export async function readPoxEntriesFromContract(cycle:number):Promise<any> {
+  const len = await getNumbEntriesRewardCyclePoxList(getConfig().stacksApi, getConfig().poxContractId!, cycle)
+  let offset = 0
+  try {
+    const o = await findLastPoxEntryByCycle(cycle)
+    if (o && o.length > 0) offset = o[0].index + 1
+  } catch(e) {}
 
-export async function findVotesByVoter(voter:string):Promise<any> {
-  const result = await stackerVotes.find({"voter":voter}).toArray();
-  return result;
+  if (len > 0) {
+    console.log('readSavePoxEntries: cycle=' + cycle + ' number entries=' + len + ' from offset=', offset)
+    readSavePoxEntries(cycle, len, offset);
+    return { entries: len }
+  }
+  return []
 }
+
+export async function readSavePoxEntries(cycle:number, len:number, offset:number):Promise<any> {
+    const entries = []
+    let poxEntry:PoxEntry;
+    for (let i = offset; i < len; i++) {
+      //if (i > 2) {
+      //  i = len;
+      //  break;
+      //}
+      let poxAddr:PoxAddress = {} as PoxAddress;
+      let bitcoinAddr:string|undefined;
+      try {
+        const entry = await getRewardSetPoxAddress(getConfig().stacksApi, getConfig().poxContractId!, cycle, i)
+        console.log('readSavePoxEntries: ', entry)
+        if (entry) {
+          try {
+            poxAddr = {
+              version: entry['pox-addr'].value.version.value, 
+              hashBytes: entry['pox-addr'].value.hashbytes.value
+            }
+            bitcoinAddr = getAddressFromHashBytes(getConfig().network, poxAddr.hashBytes, poxAddr.version)
+          } catch(err:any) {}
+    
+          poxEntry = {
+            index: i,
+            cycle,
+            poxAddr,
+            bitcoinAddr,
+            stacker: entry.stacker?.value?.value || undefined,
+            totalUstx: Number(entry['total-ustx']?.value) || 0,
+            delegations: 0
+          } as PoxEntry
+          //if (poxEntry.stacker) {
+            //const result = await readDelegates(poxEntry.stacker)
+            //console.log('readDelegates: ', result)
+            //poxEntry.delegations = result?.total || 0
+          //}
+          await saveOrUpdatePoxEntry(poxEntry)
+          entries.push(poxEntry)
+        }
+      } catch (err:any) {
+        console.error('readSavePoxEntries: saving: ' + poxAddr + '/' + cycle + '/' + i)
+        console.error('readSavePoxEntries: ' + err.message)
+      }
+    }
+    return entries
+  }
+
+  async function readDelegates(delegate:string) {
+    const url = getConfig().stacksApi + '/extended/beta/stacking/' + delegate + '/delegations?offset=0&limit=1';
+    try {
+      const response = await fetch(url);
+      const val = await response.json();
+      return val;
+    } catch (err:any) {
+       console.log('callContractReadOnly4: ', err);
+    }
+  }
+  
 
 export async function collatePoolStackerInfo(address:string, cycle:number):Promise<StackerStats> {
   const addressType = 'stacks'
-  const votes = await findVotesByVoter(address)
+  const votes = await findStackerVotesByVoter(address)
   console.log('collatePoolStackerInfo: votes: ' + votes.length)
   const rewardSlots:Array<any> = [];
   const poxEntries:Array<any> = await findPoxEntriesByStacker(address);
@@ -43,6 +113,7 @@ export async function collatePoolStackerInfo(address:string, cycle:number):Promi
     rewardSlots,
     stackerEvents,
     stackerEventsAsDelegator,
+    
   }
 }
 async function countEntries(cycle:number, stackerInfo:StackerInfo) {
@@ -107,7 +178,7 @@ export async function extractAllPoxEntriesInCycle(address:string, cycle:number) 
 export async function collateSoloStackerInfo(address:string, cycle:number):Promise<StackerStats> {
 
   const addressType = 'bitcoin'
-  const votes = await findVotesByVoter(address)
+  const votes = await findStackerVotesByVoter(address)
 
   let vote:VoteEvent = {} as VoteEvent
   if (votes && votes.length > 0) vote = votes[0]

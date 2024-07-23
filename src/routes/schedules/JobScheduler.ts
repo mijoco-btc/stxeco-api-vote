@@ -2,9 +2,21 @@ import cron from 'node-cron';
 import { getDaoConfig } from '../../lib/config_dao';
 import { readDaoEvents } from '../../lib/events/event_helper_base_dao';
 import { scanVoting } from '../../lib/events/event_helper_voting_contract';
+import { readPoolStackerEvents } from '../voting/stacker-events/pool_stacker_events_helper';
+
+// 10 mins past every 12th hour: 10 */12 * * *' 
+export const initPoolStackerEvents = cron.schedule('10 */12  * * *', (fireDate) => {
+  try {
+    console.log('NOT Running: readPoolStackerEvents at: ' + fireDate);
+    readPoolStackerEvents('pox-4');
+  } catch (err:any) {
+    console.log('Error running: readPoolStackerEvents: ', err);
+  }
+});
+
 
 // 10 mins past every fourth hour: 10 */4 * * *' 
-export const pox4EventsJob = cron.schedule('10 */4 * * *', (fireDate) => {
+export const initPox4EventsJob = cron.schedule('10 */4 * * *', (fireDate) => {
   try {
     console.log('NOT Running: pox4EventsJob at: ' + fireDate);
     //readPox4Events();

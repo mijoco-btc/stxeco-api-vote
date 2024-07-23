@@ -2,7 +2,7 @@ import { getConfig } from "../../lib/config"
 import { poolStackerAddresses } from "./solo_pool_addresses"
 import { getBurnBlockHeight } from "./dao_helper"
 import { findPoolStackerEventsByStackerAndEvent } from "../voting/stacker-events/pool_stacker_events_helper"
-import { findVotesByProposalAndMethod, saveOrUpdateVote, updateVote } from "./vote_count_helper"
+import { findStackerVotesByProposalAndMethod, saveOrUpdateVote, updateVote } from "../voting/stacker-voting/vote_count_helper"
 import { VoteEvent, VotingEventProposeProposal } from "@mijoco/stx_helpers/dist/index"
 import { getCheckDelegation } from "@mijoco/stx_helpers/dist/pox/pox"
 import { Delegation } from "@mijoco/stx_helpers/dist/pox_types"
@@ -86,7 +86,7 @@ async function addToMongoDB(proposal:VotingEventProposeProposal, txs:Array<any>,
 
 export async function reconcilePoolTxs(proposal:VotingEventProposeProposal):Promise<any> {
   try {
-    const votesAll:Array<VoteEvent> = await findVotesByProposalAndMethod(proposal.proposal, 'pool-vote');
+    const votesAll:Array<VoteEvent> = await findStackerVotesByProposalAndMethod(proposal.proposal, 'pool-vote');
     let offset = 0; //await countContractEvents();
     for (const voteTx of votesAll) {
       //const voted = votes.filter((o) => o.voter === voteTx.sender_address)
@@ -101,8 +101,8 @@ export async function reconcilePoolTxs(proposal:VotingEventProposeProposal):Prom
             let event = stackerEvents.find((o:any) => o.burnchainUnlockHeight === 0)
             if (!event) event = stackerEvents[0]
             updates = {
-              delegateTo: event.data.delegator,
-              delegateTxId: event.submitTxId,
+              //delegateTo: event.data.delegator,
+              //delegateTxId: event.submitTxId,
               amount: (event.data.amountUstx) ? event.data.amountUstx : 0,
             }
             await updateVote(voteTx, updates)

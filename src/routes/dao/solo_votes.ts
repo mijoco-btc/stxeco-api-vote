@@ -1,7 +1,7 @@
 import { getConfig } from "../../lib/config"
-import { extractAllPoxEntriesInCycle, findPoxEntriesByAddressAndCycle } from "../voting/pox_entries/pox_helper";
+import { extractAllPoxEntriesInCycle, findPoxEntriesByAddressAndCycle } from "../voting/pox-entries/pox_helper";
 import { getAddressFromHashBytes } from "@mijoco/btc_helpers/dist/index";
-import { findVotesByProposalAndMethod, findVotesBySoloZeroAmounts, findVotesByVoter, saveVote, updateVote } from "./vote_count_helper";
+import { findStackerVotesByProposalAndMethod, findStackerVotesBySoloZeroAmounts, findStackerVotesByVoter, saveVote, updateVote } from "../voting/stacker-voting/vote_count_helper";
 import * as btc from '@scure/btc-signer';
 import { hex } from '@scure/base';
 import { fetchAddressTransactions, getHashBytesFromAddress, fetchAddressTransactionsMin, fetchTransaction } from "@mijoco/btc_helpers/dist/index";
@@ -10,7 +10,7 @@ import assert from "assert";
 
 
 export async function analyseMultisig(address:string) {
-  const vote = await findVotesByVoter(address)
+  const vote = await findStackerVotesByVoter(address)
   const tx = await fetchTransaction(getConfig().mempoolUrl, vote[0].submitTxId)
 	//const tx1:btc.Transaction = btc.Transaction.fromRaw(hex.decode(tx.hex), {allowUnknowInput:true, allowUnknowOutput: true, allowUnknownOutputs: true, allowUnknownInputs: true})
   const scripts = tx.vin[0].inner_witnessscript_asm.split(' ')
@@ -57,7 +57,7 @@ export async function readSoloVote(bitcoinAddress:string) {
 
 export async function readSoloZeroVote() {
   //const myTx = '1f62qrQaNsFyohrgEya8oby4Y9ti3FnM8'
-  const votes:Array<VoteEvent> = await findVotesBySoloZeroAmounts();
+  const votes:Array<VoteEvent> = await findStackerVotesBySoloZeroAmounts();
   //const votes = votesAll.filter((o) => o.voter === myTx)
   //console.log('readSoloZeroVote: ', votes)
   const linkedVotes:Array<any> = []
@@ -109,7 +109,7 @@ export async function readSoloZeroVote() {
  * Step 2: match votes to pox data
  */
 export async function reconcileSoloTxs(proposal:VotingEventProposeProposal):Promise<any> {
-  const votesAll:Array<VoteEvent> = await findVotesByProposalAndMethod(proposal.proposal, 'solo-vote');
+  const votesAll:Array<VoteEvent> = await findStackerVotesByProposalAndMethod(proposal.proposal, 'solo-vote');
   console.log('setSoloVotes: pe1:', votesAll.length)
   for (const v of votesAll) {
     if (v && v.poxAddr) {
