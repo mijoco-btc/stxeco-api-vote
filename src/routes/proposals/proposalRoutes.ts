@@ -3,7 +3,7 @@ import { FundingData, TentativeProposal, VotingEventProposeProposal, lookupContr
 import { fetchByBaseDaoEvent } from "../../lib/events/event_helper_base_dao";
 import { fetchActiveProposeEvents, fetchAllConcludedEvents, fetchAllProposeEvents, fetchLatestProposal, fetchProposeEvent, toggleSipStatus, updateStackerData } from "../../lib/events/event_helper_voting_contract";
 import { generateAddresses, getFunding, getMetaData } from "../../lib/events/proposal";
-import { fetchTentativeProposals, findTentativeProposalByContractId, saveOrUpdateProposal, saveOrUpdateTentativeProposal } from "../../lib/data/db_models";
+import { fetchTentativeProposals, findTentativeProposalByContractId, saveOrUpdateTentativeProposal } from "../../lib/data/db_models";
 import { getConfig } from "../../lib/config";
 
 const router = express.Router();

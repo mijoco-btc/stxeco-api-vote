@@ -67,7 +67,6 @@ export async function getProposalData(votingContract:string, principle:string):P
       functionArgs,
     }
     const result = await callContractReadOnly(getConfig().stacksApi, data);
-    //console.log('processEvent: votingContractEvent: result', result)
     let start = 0
     let end = 0
     let startBlockHeight = 0
@@ -112,8 +111,9 @@ export function getMetaData (source:string) {
   const proposalMeta = { dao: '', title: '', author: '', synopsis: '', description: '', };
   lines.forEach((l) => {
     if (l === ';;' || l === ';; ') l = '<br/><br/>'
-    l = l.replace(/;;/, "");
+    l = l.replace(/;;/g, '');
     if (l.indexOf('DAO:') > -1) proposalMeta.dao = l.split('DAO:')[1];
+    else if (l.indexOf('Title:') > -1) proposalMeta.title = l.split('Title:')[1];
     else if (l.indexOf('Title:') > -1) proposalMeta.title = l.split('Title:')[1];
     else if (l.indexOf('Author:') > -1) proposalMeta.author = l.split('Author:')[1];
     //else if (l.indexOf('Synopsis:') > -1) proposalMeta.synopsis = l.split('Synopsis:')[1];
@@ -124,11 +124,11 @@ export function getMetaData (source:string) {
   })
   let alt = source.split('Synopsis:')[1] || '';
   let alt1 = alt.split('Description:')[0];
-  proposalMeta.synopsis = alt1.replace(';;', '');
+  proposalMeta.synopsis = alt1.replace(/;;/g, '');
   if (source.indexOf('Author(s):') > -1) {
     alt = source.split('Author(s):')[1] || '';
     alt1 = alt.split('Synopsis:')[0];
-    proposalMeta.author = alt1.replace(';;', '');
+    proposalMeta.author = alt1.replace(/;;/g, '');
   }
   proposalMeta.description = proposalMeta.description.replace('The upgrade is designed', '<br/><br/>The upgrade is designed');
   proposalMeta.description = proposalMeta.description.replace('Should this upgrade pass', '<br/><br/>Should this upgrade pass');
