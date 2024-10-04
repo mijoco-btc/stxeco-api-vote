@@ -168,6 +168,6 @@ router.get("/encode/:version/:hashBytes", async (req, res, next) => {
 });
 
 
-export { router as pox3Routes }
+export { router as poxRoutes }
 
 

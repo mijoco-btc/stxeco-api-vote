@@ -12,7 +12,7 @@ import { rewardSlotRoutes } from './routes/voting/rewardSlotRoutes'
 import { stackerEventRoutes } from './routes/voting/stackerEventRoutes'
 import { proposalRoutes } from './routes/proposals/proposalRoutes'
 import { getExchangeRates, rateRoutes, updateExchangeRates } from './routes/rates/rateRoutes'
-import { pox3Routes } from './routes/voting/poxRoutes'
+import { poxRoutes } from './routes/voting/poxRoutes'
 import { connect } from './lib/data/db_models';
 import { setDaoConfigOnStart } from './lib/config_dao';
 import { initPoolStackerEvents, initScanDaoEventsJob, initScanVotingEventsJob } from './routes/schedules/JobScheduler';
@@ -51,7 +51,7 @@ app.use((req, res, next) => {
 app.use('/bridge-api/dao/v1', daoRoutes);
 app.use('/bridge-api/proposals/v1', proposalRoutes);
 app.use('/bridge-api/rates/v1', rateRoutes);
-app.use('/bridge-api/pox3/v1', pox3Routes);
+app.use('/bridge-api/pox/v1', poxRoutes);
 app.use('/bridge-api/dao-voting/v1', daoVotingRoutes);
 app.use('/bridge-api/stacker-voting/v1', stackerVotingRoutes);
 app.use('/bridge-api/stacker-events/v1', stackerEventRoutes);

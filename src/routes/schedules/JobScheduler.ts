@@ -39,8 +39,8 @@ export const initScanDaoEventsJob = cron.schedule('30 */2 * * *', async (fireDat
 });
 
 
-// every 10 mins: */10 * * * *' 
-export const initScanVotingEventsJob = cron.schedule('*/30 * * * *', async (fireDate) =>  {
+// runs at 01:01 AM every Sunday' 
+export const initScanVotingEventsJob = cron.schedule('1 1 * * 0', async (fireDate) =>  {
   console.log('Running: initScanVotingEventsJob at: ' + fireDate);
   try {
     await scanVoting(true)

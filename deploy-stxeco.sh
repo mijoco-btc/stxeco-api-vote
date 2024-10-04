@@ -25,13 +25,13 @@ printf "\n\n===================================================="
 printf "\nConnecting to: $SERVER:$PORT"
 printf "\nDeploying docker container: $DOCKER_NAME"
 
-ssh -p $PORT bob@$SERVER "
-  source ~/.profile;
-  docker login;
-  docker pull mijoco/stxeco_api_vote;
-  docker rm -f stxeco_api_vote  
-  docker run -d -t -i --network host --env-file ~/.env --name stxeco_api_vote -p 3010:3010 mijoco/stxeco_api_vote
-";
+#ssh -p $PORT bob@$SERVER "
+#  source ~/.profile;
+#  docker login;
+#  docker pull mijoco/stxeco_api_vote;
+#  docker rm -f stxeco_api_vote  
+#  docker run -d -t -i --network host --env-file ~/.env --name stxeco_api_vote -p 3010:3010 mijoco/stxeco_api_vote
+#";
 
 printf "Finished....\n"
 printf "\n-----------------------------------------------------------------------------------------------------\n";
