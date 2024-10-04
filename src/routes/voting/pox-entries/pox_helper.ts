@@ -23,8 +23,8 @@ export async function readPoxEntriesFromContract(cycle:number):Promise<any> {
 
   if (len > 0) {
     console.log('readSavePoxEntries: cycle=' + cycle + ' number entries=' + len + ' from offset=', offset)
-    readSavePoxEntries(cycle, len, offset);
-    return { entries: len }
+    const entries = readSavePoxEntries(cycle, len, offset);
+    return entries
   }
   return []
 }
