@@ -46,10 +46,12 @@ router.get("/sync/pox-entries/:cycle/:index", async (req, res, next) => {
 });
 router.get("/pox-entries/:cycle", async (req, res, next) => {
   try {
-    let response = await findPoxEntriesByCycle(Number(req.params.cycle));
-    if (response.length === 0) {
+    const cycle = Number(req.params.cycle);
+    const poxInfo = await getPoxInfo(getConfig().stacksApi)
+    let response = await findPoxEntriesByCycle(cycle);
+    if (response.length === 0 || cycle >= poxInfo.current_cycle.id) {
       try {
-        response = await readPoxEntriesFromContract(Number(req.params.cycle));
+        response = await readPoxEntriesFromContract(cycle);
       } catch(err:any) {
         response = []
         console.log('Error: /pox-entries/:cycle ' + err.message)
