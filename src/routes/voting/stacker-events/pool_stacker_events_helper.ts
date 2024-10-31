@@ -286,13 +286,14 @@ export async function countsPoolStackerEvents(
 }
 
 export async function findPoolStackerEventsByHashBytes(
+  poxContract: string,
   hashBytes: string,
   page: number,
   limit: number
 ): Promise<Array<PoolStackerEvent>> {
   if (!hashBytes.startsWith("0x")) hashBytes = "0x" + hashBytes;
   const result = await poolStackerEventsCollection
-    .find({ "data.poxAddr.hashBytes": hashBytes })
+    .find({ "data.poxAddr.hashBytes": hashBytes, poxContractName: poxContract })
     .skip(page * limit)
     .limit(limit)
     .toArray();
@@ -300,12 +301,17 @@ export async function findPoolStackerEventsByHashBytes(
 }
 
 export async function findPoolStackerEventsByHashBytesAndEvent(
+  poxContract: string,
   hashBytes: string,
   event: string
 ): Promise<Array<PoolStackerEvent>> {
   if (!hashBytes.startsWith("0x")) hashBytes = "0x" + hashBytes;
   const result = await poolStackerEventsCollection
-    .find({ "data.poxAddr.hashBytes": hashBytes, event })
+    .find({
+      "data.poxAddr.hashBytes": hashBytes,
+      event,
+      poxContractName: poxContract,
+    })
     .toArray();
   return result as unknown as Array<PoolStackerEvent>;
 }
@@ -348,11 +354,12 @@ export async function findPoolStackerEventsByDelegator(
 }
 
 export async function findPoolStackerEventsByStackerAndEvent(
+  poxContract: string,
   stacker: string,
   event: string
 ): Promise<Array<PoolStackerEvent>> {
   const result = await poolStackerEventsCollection
-    .find({ stacker: stacker, event: event })
+    .find({ stacker: stacker, event: event, poxContractName: poxContract })
     .toArray();
   return result as unknown as Array<PoolStackerEvent>;
 }

@@ -113,10 +113,11 @@ router.get(
 );
 
 router.get(
-  "/stacker-events-by-hashbytes/:hashBytes/:page/:limit",
+  "/stacker-events-by-hashbytes/:poxContract/:hashBytes/:page/:limit",
   async (req, res, next) => {
     try {
       const response = await findPoolStackerEventsByHashBytes(
+        req.params.poxContract,
         req.params.hashBytes,
         Number(req.params.page),
         Number(req.params.limit)
@@ -130,18 +131,24 @@ router.get(
 );
 
 router.get(
-  "/stacker-events-by-stacker-event/:event/:address",
+  "/stacker-events-by-stacker-event/:poxContract/:event/:address",
   async (req, res, next) => {
     try {
       let response;
+      const poxContract = req.params.poxContract;
       const address = req.params.address;
       const event = req.params.event;
       if (address.toUpperCase().startsWith("S")) {
-        response = await findPoolStackerEventsByStackerAndEvent(address, event);
+        response = await findPoolStackerEventsByStackerAndEvent(
+          poxContract,
+          address,
+          event
+        );
       } else {
         const addrInfo = getHashBytesFromAddress(getConfig().network, address);
         if (addrInfo?.hashBytes)
           response = await findPoolStackerEventsByHashBytesAndEvent(
+            poxContract,
             addrInfo?.hashBytes,
             event
           );
@@ -154,27 +161,32 @@ router.get(
   }
 );
 
-router.get("/stacker-events-by-stacker/:address", async (req, res, next) => {
-  try {
-    let response;
-    const address = req.params.address;
-    if (address.toUpperCase().startsWith("S")) {
-      response = await findPoolStackerEventsByStacker(address);
-    } else {
-      const addrInfo = getHashBytesFromAddress(getConfig().network, address);
-      if (addrInfo?.hashBytes)
-        response = await findPoolStackerEventsByHashBytes(
-          addrInfo?.hashBytes,
-          0,
-          100
-        );
+router.get(
+  "/stacker-events-by-stacker/:poxContract/:address",
+  async (req, res, next) => {
+    try {
+      let response;
+      const poxContract = req.params.poxContract;
+      const address = req.params.address;
+      if (address.toUpperCase().startsWith("S")) {
+        response = await findPoolStackerEventsByStacker(address);
+      } else {
+        const addrInfo = getHashBytesFromAddress(getConfig().network, address);
+        if (addrInfo?.hashBytes)
+          response = await findPoolStackerEventsByHashBytes(
+            poxContract,
+            addrInfo?.hashBytes,
+            0,
+            100
+          );
+      }
+      return res.send(response);
+    } catch (error) {
+      console.log("Error in routes: ", error);
+      next("An error occurred fetching sbtc data.");
     }
-    return res.send(response);
-  } catch (error) {
-    console.log("Error in routes: ", error);
-    next("An error occurred fetching sbtc data.");
   }
-});
+);
 
 router.get("/stacker-events-by-delegator/:address", async (req, res, next) => {
   try {
@@ -196,18 +208,22 @@ router.get("/pool-stacker-events/:stacker", async (req, res, next) => {
   }
 });
 
-router.get("/pool-stacker-events/:stacker/:event", async (req, res, next) => {
-  try {
-    const response = await findPoolStackerEventsByStackerAndEvent(
-      req.params.stacker,
-      req.params.event
-    );
-    return res.send(response);
-  } catch (error) {
-    console.log("Error in routes: ", error);
-    next("An error occurred fetching sbtc data.");
+router.get(
+  "/pool-stacker-events/:poxContract/:stacker/:event",
+  async (req, res, next) => {
+    try {
+      const response = await findPoolStackerEventsByStackerAndEvent(
+        req.params.poxContract,
+        req.params.stacker,
+        req.params.event
+      );
+      return res.send(response);
+    } catch (error) {
+      console.log("Error in routes: ", error);
+      next("An error occurred fetching sbtc data.");
+    }
   }
-});
+);
 
 router.get("/stacker-events/:page/:limit", async (req, res, next) => {
   try {
