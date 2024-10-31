@@ -101,7 +101,7 @@ export async function reconcileViaLocked(
   //console.log(locked)
   return locked;
 }
-export async function reconcileViaTotals(
+export async function reconcileViaBalanceAtHeight(
   proposal: VotingEventProposeProposal,
   voter: string
 ) {
@@ -129,7 +129,7 @@ export async function reconcileVoteViaStacks(
   vote: VoteEvent
 ) {
   //let locked = await reconcileViaLocked(proposal, vote.voter);
-  const balanceObj = await reconcileViaTotals(proposal, vote.voter);
+  const balanceObj = await reconcileViaBalanceAtHeight(proposal, vote.voter);
   let changes = {
     amount: balanceObj.total,
     amountUnlocked: balanceObj.unlocked,
