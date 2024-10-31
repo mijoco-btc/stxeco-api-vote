@@ -336,10 +336,11 @@ export async function findPoolStackerEventsByHashBytesAndVersion(
 }
 
 export async function findPoolStackerEventsByStacker(
+  poxContract: string,
   stacker: string
 ): Promise<Array<PoolStackerEvent>> {
   const result = await poolStackerEventsCollection
-    .find({ stacker: stacker })
+    .find({ stacker: stacker, poxContractName: poxContract })
     .toArray();
   return result as unknown as Array<PoolStackerEvent>;
 }

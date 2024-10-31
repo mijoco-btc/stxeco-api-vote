@@ -169,7 +169,7 @@ router.get(
       const poxContract = req.params.poxContract;
       const address = req.params.address;
       if (address.toUpperCase().startsWith("S")) {
-        response = await findPoolStackerEventsByStacker(address);
+        response = await findPoolStackerEventsByStacker(poxContract, address);
       } else {
         const addrInfo = getHashBytesFromAddress(getConfig().network, address);
         if (addrInfo?.hashBytes)
@@ -200,7 +200,10 @@ router.get("/stacker-events-by-delegator/:address", async (req, res, next) => {
 
 router.get("/pool-stacker-events/:stacker", async (req, res, next) => {
   try {
-    const response = await findPoolStackerEventsByStacker(req.params.stacker);
+    const response = await findPoolStackerEventsByStacker(
+      "pox-4",
+      req.params.stacker
+    );
     return res.send(response);
   } catch (error) {
     console.log("Error in routes: ", error);
