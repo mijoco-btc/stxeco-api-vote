@@ -54,7 +54,7 @@ import {
   findPoolStackerEvents,
   findPoolStackerEventsByEvent,
 } from "../pox4/pox-events/pox4_events_helper";
-import { getHashBytesFromAddress } from "@mijoco/btc_helpers";
+import { getHashBytesFromAddress } from "@mijoco/btc_helpers/dist/index";
 import { getConfig } from "../../lib/config";
 
 const router = express.Router();
