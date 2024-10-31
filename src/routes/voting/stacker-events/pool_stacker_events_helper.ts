@@ -19,7 +19,7 @@ import {
   StackStx,
 } from "@mijoco/stx_helpers/dist/index";
 import { RevokeDelegateStx } from "@mijoco/stx_helpers/dist/pox_types";
-import { getAddressFromHashBytes } from "@mijoco/btc_helpers";
+import { getAddressFromHashBytes } from "@mijoco/btc_helpers/dist/index";
 
 export async function readPoolStackerEvents(poxContractName: string) {
   const poxContract = `${
