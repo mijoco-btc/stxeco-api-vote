@@ -56,7 +56,7 @@ export async function reconcileVotes(
       }
     } else if (vote.source === "bitcoin") {
       try {
-        await reconcileVoteViaBitcoin(proposal, cycle1, vote);
+        await reconcileBitcoinVoteViaPoxEntries(proposal, cycle1, vote);
       } catch (err: any) {
         console.error(
           "reconcileVotes: reconcileVoteViaStacks: error: " + err.message
@@ -171,7 +171,7 @@ export async function reconcileVoteViaStacks(
   );
 }
 
-export async function reconcileVoteViaBitcoin(
+export async function reconcileBitcoinVoteViaPoxEntries(
   proposal: VotingEventProposeProposal,
   cycle1: number,
   vote: VoteEvent
@@ -196,6 +196,7 @@ export async function reconcileVoteViaBitcoin(
   if (counter === 0) return;
 
   changes.amount = amountUstx / counter;
+  changes.amountLocked = changes.amount;
   changes.event = "solo-vote";
 
   vote = (await updateVote(vote, changes)) as unknown as VoteEvent;
