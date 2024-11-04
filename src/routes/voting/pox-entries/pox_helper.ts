@@ -25,6 +25,7 @@ import {
   getHashBytesFromAddress,
 } from "@mijoco/btc_helpers/dist/index";
 import { findStackerVotesByVoter } from "../stacker-voting/vote_count_helper";
+import { hex } from "@scure/base";
 
 export async function getPoxBitcoinAddressInfo(
   address: string,
