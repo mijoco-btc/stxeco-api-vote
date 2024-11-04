@@ -29,6 +29,9 @@ const limit = 50;
 const PRE_NAKAMOTO_STACKS_TIP_HEIGHT = 850850;
 const stxPrecision = 1000000;
 
+const delay = (ms: number | undefined) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
 export async function reconcileVotes(
   proposal: VotingEventProposeProposal
 ): Promise<any> {
@@ -46,6 +49,7 @@ export async function reconcileVotes(
 
   const votes = await findStackerVotesByProposal(proposal.proposal);
   for (const vote of votes) {
+    await delay(5000);
     if (vote.source === "stacks") {
       try {
         await reconcileVoteViaStacks(proposal, vote);
