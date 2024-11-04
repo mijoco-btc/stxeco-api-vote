@@ -106,13 +106,26 @@ export async function reconcileViaBalanceAtHeight(
   voter: string
 ) {
   let counter = 0;
+  const height =
+    proposal.stackerData?.heights?.stacksStart ||
+    proposal.proposalData.startBlockHeight;
   let balanceAtHeight = await getBalanceAtHeight(
     getConfig().stacksApi,
     voter,
-    proposal.proposalData.startBlockHeight
+    height
   );
   const locked = Number(balanceAtHeight.stx?.locked || 0);
   const unlocked = Number(balanceAtHeight.stx?.balance || 0) - locked;
+  console.log(
+    "voter: " +
+      voter +
+      " locked: " +
+      locked +
+      " unlocked: " +
+      unlocked +
+      " height: " +
+      height
+  );
   return { locked, unlocked, total: locked + unlocked };
 }
 export function fmtStxMicro(amountStx: number) {
@@ -300,7 +313,7 @@ export async function saveStackerStacksTxs(
       offset,
       proposal.stackerData.stacksAddressYes
     );
-    if (events && events.results.length > 0) {
+    if (events?.results?.length > 0) {
       for (const tx of events.results) {
         if (
           checkHeights(
@@ -323,7 +336,7 @@ export async function saveStackerStacksTxs(
       offset,
       proposal.stackerData.stacksAddressNo
     );
-    if (events && events.results.length > 0) {
+    if (events?.results?.length > 0) {
       for (const tx of events.results) {
         if (
           checkHeights(
