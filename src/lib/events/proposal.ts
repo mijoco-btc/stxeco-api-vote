@@ -427,15 +427,17 @@ export function generateStacksAddressV2(msg: string) {
 }
 
 export function generateAddressesV2(sip: string) {
-  const msgYes = "yes-" + sip;
-  const msgNo = "no-" + sip;
+  const yesMessage = "yes-" + sip;
+  const noMessage = "no-" + sip;
   const votingAddresses = {
-    msgYes,
-    msgNo,
-    yBtcAddress: generateBitcoinAddressV2(msgYes),
-    nBtcAddress: generateBitcoinAddressV2(msgNo),
-    yStxAddress: generateStacksAddressV2(msgYes),
-    nStxAddress: generateStacksAddressV2(msgNo),
+    yesMessage,
+    noMessage,
+    yesEncodedMessage: hex.encode(encodeMessageToUint8Array(yesMessage)),
+    noEncodedMessage: hex.encode(encodeMessageToUint8Array(noMessage)),
+    yesBtcAddress: generateBitcoinAddressV2(yesMessage),
+    noBtcAddress: generateBitcoinAddressV2(noMessage),
+    yesStxAddress: generateStacksAddressV2(yesMessage),
+    noStxAddress: generateStacksAddressV2(noMessage),
   };
   console.log("generateAddresses: ", votingAddresses);
   return votingAddresses;
