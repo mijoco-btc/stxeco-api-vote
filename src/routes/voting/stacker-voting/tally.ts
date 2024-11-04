@@ -178,14 +178,22 @@ export async function reconcileVoteViaStacks(
     changes.poxAddr = (stackerDel.poxAddr && stackerDel.poxAddr.version) ? stackerDel.poxAddr : undefined
   }
   */
-
-  vote = (await updateVote(vote, changes)) as unknown as VoteEvent;
-  console.log(
-    "reconcileVote: updated stacks vote: amount: " +
-      vote.amount +
-      " voter: " +
-      vote.voter
-  );
+  if (balanceObj.total > 0) {
+    vote = (await updateVote(vote, changes)) as unknown as VoteEvent;
+    console.log(
+      "reconcileVote: updated stacks vote: amount: " +
+        vote.amount +
+        " voter: " +
+        vote.voter
+    );
+  } else {
+    console.log(
+      "reconcileVote: NOT UPDATING WITH ZERO TOTAL: amount: " +
+        vote.amount +
+        " voter: " +
+        vote.voter
+    );
+  }
 }
 
 export async function reconcileBitcoinVoteViaPoxEntries(
