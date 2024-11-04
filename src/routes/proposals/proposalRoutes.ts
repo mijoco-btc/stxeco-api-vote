@@ -52,9 +52,9 @@ router.get("/generate-stacks-addresses/:msg", async (req, res, next) => {
   }
 });
 
-router.get("/generate-addresses/:proposalId", async (req, res, next) => {
+router.get("/generate-addresses/:msg", async (req, res, next) => {
   try {
-    const extensions = await generateAddressesV2(req.params.proposalId);
+    const extensions = await generateAddressesV2(req.params.msg);
     return res.send(extensions);
   } catch (error) {
     console.log("Error in routes: ", error);

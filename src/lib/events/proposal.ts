@@ -371,7 +371,7 @@ export async function generateAddresses(proposalId: string) {
   return votingAddresses;
 }
 
-export function encodeMessageToUint8Array(message: string): Uint8Array {
+function encodeMessageToUint8Array(message: string): Uint8Array {
   const input = Array.from(message).map((char) => char.charCodeAt(0));
 
   const paddedArray = new Uint8Array(20);
@@ -380,7 +380,7 @@ export function encodeMessageToUint8Array(message: string): Uint8Array {
   return paddedArray;
 }
 
-export function encodeMessageWithZeroPadding(message: string): string {
+function encodeMessageWithZeroPadding(message: string): string {
   return message
     .split("")
     .map((char) => char.charCodeAt(0))
@@ -388,7 +388,7 @@ export function encodeMessageWithZeroPadding(message: string): string {
     .join("");
 }
 
-export function getPubKeyHash(hexEncodedMessage: string) {
+function getPubKeyHash(hexEncodedMessage: string) {
   return `OP_DUP OP_HASH160 ${hexEncodedMessage} OP_EQUALVERIFY OP_CHECKSIG`;
 }
 
@@ -397,24 +397,18 @@ function generateBitcoinAddress(
   versionByte = 0x00
 ): string {
   const paddedScript = padOrTrim(script, 20);
-
-  // Step 2: Add version byte to the front
   const addressWithVersion = new Uint8Array([versionByte, ...paddedScript]);
-
-  // Step 3: Calculate checksum (first 4 bytes of SHA-256 on the address with version)
   const checksum = sha256(sha256(addressWithVersion)).slice(0, 4);
-
-  // Step 4: Concatenate the versioned address and checksum, then encode in Base58
   const fullAddress = new Uint8Array([...addressWithVersion, ...checksum]);
   return base58.encode(Buffer.from(fullAddress));
 }
 
 function padOrTrim(array: Uint8Array, targetLength: number): Uint8Array {
   if (array.length > targetLength) {
-    return array.slice(0, targetLength); // Trim if too long
+    return array.slice(0, targetLength);
   } else if (array.length < targetLength) {
     const padded = new Uint8Array(targetLength);
-    padded.set(array, targetLength - array.length); // Right-align the padding
+    padded.set(array, targetLength - array.length);
     return padded;
   }
   return array;
