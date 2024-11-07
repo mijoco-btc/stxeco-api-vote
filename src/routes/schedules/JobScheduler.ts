@@ -26,7 +26,7 @@ export const initPoolStackerEvents = cron.schedule(
   }
 );
 
-export const readVotes = cron.schedule("5 */1  * * *", async (fireDate) => {
+export const readVotes = cron.schedule("5 */3  * * *", async (fireDate) => {
   try {
     console.log("NOT Running: readVotes at: " + fireDate);
     const proposal: VotingEventProposeProposal = await fetchProposeEvent(

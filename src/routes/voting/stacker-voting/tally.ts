@@ -16,6 +16,7 @@ import {
 } from "@mijoco/stx_helpers/dist/pox/pox";
 import { getConfig } from "../../../lib/config";
 import {
+  findStackerVoteByProposalAndVoter,
   findStackerVotesByProposal,
   saveVote,
   updateVote,
@@ -49,25 +50,34 @@ export async function reconcileVotes(
 
   const votes = await findStackerVotesByProposal(proposal.proposal);
   for (const vote of votes) {
-    await delay(5000);
-    if (vote.source === "stacks") {
-      try {
-        await reconcileVoteViaStacks(proposal, vote);
-      } catch (err: any) {
-        console.error(
-          "reconcileVotes: reconcileVoteViaStacks: error: " + err.message
-        );
-      }
-    } else if (vote.source === "bitcoin") {
-      try {
-        await reconcileBitcoinVoteViaPoxEntries(proposal, cycle1, vote);
-      } catch (err: any) {
-        console.error(
-          "reconcileVotes: reconcileVoteViaStacks: error: " + err.message
-        );
+    if (vote.amount === 0) {
+      await delay(500);
+      if (vote.source === "stacks") {
+        try {
+          await reconcileVoteViaStacks(proposal, vote);
+        } catch (err: any) {
+          console.error(
+            "reconcileVotes: reconcileVoteViaStacks: error: " + err.message
+          );
+        }
+      } else if (vote.source === "bitcoin") {
+        try {
+          await reconcileBitcoinVoteViaPoxEntries(proposal, cycle1, vote);
+        } catch (err: any) {
+          console.error(
+            "reconcileVotes: reconcileVoteViaStacks: error: " + err.message
+          );
+        }
+      } else {
+        console.log("reconcileVotes: unknown source", vote);
       }
     } else {
-      console.log("reconcileVotes: unknown source", vote);
+      console.log(
+        "reconcileVotes: already reconciled vote" +
+          vote.voter +
+          " amount: " +
+          vote.amount
+      );
     }
   }
   //if (voteEvent.source === 'bitcoin') {
@@ -270,6 +280,17 @@ export async function saveStackerBitcoinTxs(
     proposal.stackerData.bitcoinAddressNo
   );
 
+  console.log(
+    "saveStackerBitcoinTxs: processing: " +
+      allYesResults.length +
+      " bitcoin yes votes"
+  );
+  console.log(
+    "saveStackerBitcoinTxs: processing: " +
+      allNoResults.length +
+      " bitcoin no votes"
+  );
+
   if (allYesResults) {
     for (const tx of allYesResults) {
       if (
@@ -343,6 +364,12 @@ export async function saveStackerStacksTxs(
     offset += limit;
   } while (events.results.length > 0);
 
+  console.log(
+    "saveStackerStacksTxs: processing " +
+      stackerTxsYes.length +
+      " yes stacks txs"
+  );
+
   do {
     events = await getStacksTransactionsByAddress(
       offset,
@@ -365,8 +392,13 @@ export async function saveStackerStacksTxs(
     }
     offset += limit;
   } while (events.results.length > 0);
-  convertStacksTxsToVotes(proposal, stackerTxsYes, true);
-  convertStacksTxsToVotes(proposal, stackerTxsNo, false);
+
+  console.log(
+    "saveStackerStacksTxs: processing " + stackerTxsNo.length + " no stacks txs"
+  );
+
+  await convertStacksTxsToVotes(proposal, stackerTxsYes, true);
+  await convertStacksTxsToVotes(proposal, stackerTxsNo, false);
 
   return { stackerTxsYes, stackerTxsNo };
 }
@@ -408,30 +440,40 @@ async function convertStacksTxsToVotes(
     //const stackerDel = await getCheckDelegationAtTip(proposal.proposalData.startBlockHeight, v.sender_address)
     //console.log('getCheckDelegationAtTip: ', stackerDel)
 
-    const potVote: any = {
-      //amount: (stackerDel && stackerDel.amount) ? stackerDel.amount : 0,
-      amount: 0,
-      for: vfor,
-      proposalContractId: proposal.proposal,
-      submitTxId: v.tx_id,
-      event: "pool-or-solo-vote",
-      source: "stacks",
-      votingContractId: proposal.votingContract,
-      voter: v.sender_address,
-      blockHeight: v.block_height,
-      burnBlockHeight: v.burn_block_height,
-      reconciled: false,
-    };
-    try {
-      await saveVote(potVote);
+    const existingVote = await findStackerVoteByProposalAndVoter(
+      proposal.proposal,
+      v.sender_address
+    );
+    if (!existingVote || existingVote.amount === 0) {
+      const potVote: any = {
+        //amount: (stackerDel && stackerDel.amount) ? stackerDel.amount : 0,
+        amount: 0,
+        for: vfor,
+        proposalContractId: proposal.proposal,
+        submitTxId: v.tx_id,
+        event: "pool-or-solo-vote",
+        source: "stacks",
+        votingContractId: proposal.votingContract,
+        voter: v.sender_address,
+        blockHeight: v.block_height,
+        burnBlockHeight: v.burn_block_height,
+        reconciled: false,
+      };
+      try {
+        await saveVote(potVote);
+        console.log(
+          "convertStacksTxsToVotes: saved vote from voter:" + potVote.voter
+        );
+        votes.push(potVote);
+      } catch (err: any) {
+        // duplicate bids from same bidder are counted as first bid
+        console.log(
+          "convertStacksTxsToVotes: ignored subsequent vote by:" + potVote.voter
+        );
+      }
+    } else {
       console.log(
-        "convertStacksTxsToVotes: saved vote from voter:" + potVote.voter
-      );
-      votes.push(potVote);
-    } catch (err: any) {
-      // duplicate bids from same bidder are counted as first bid
-      console.log(
-        "convertStacksTxsToVotes: ignored subsequent vote by:" + potVote.voter
+        "convertStacksTxsToVotes: already recorded vote by:" + v.voter
       );
     }
   }
