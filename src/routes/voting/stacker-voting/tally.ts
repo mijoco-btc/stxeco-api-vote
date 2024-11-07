@@ -26,7 +26,7 @@ import {
   findPoxEntryByCycleAndIndex,
 } from "../pox-entries/pox_helper";
 
-const limit = 50;
+const limit = 20;
 const PRE_NAKAMOTO_STACKS_TIP_HEIGHT = 850850;
 const stxPrecision = 1000000;
 
@@ -351,8 +351,8 @@ export async function saveStackerStacksTxs(
         if (
           checkHeights(
             tx.burn_block_height,
-            proposal.stackerData.heights.burnStart,
-            proposal.stackerData.heights.burnEnd
+            proposal.proposalData.burnStartHeight,
+            proposal.proposalData.burnEndHeight
           )
         ) {
           stackerTxsYes.push(tx);
@@ -362,6 +362,7 @@ export async function saveStackerStacksTxs(
       }
     }
     offset += limit;
+    await delay(500);
   } while (events.results.length > 0);
 
   console.log(
@@ -408,7 +409,7 @@ function checkHeights(
   minBurnHeight: number,
   maxBurnHeight: number
 ): boolean {
-  return height >= minBurnHeight && height < maxBurnHeight;
+  return height >= minBurnHeight && height <= maxBurnHeight;
 }
 
 async function getStacksTransactionsByAddress(
@@ -417,7 +418,7 @@ async function getStacksTransactionsByAddress(
 ): Promise<any> {
   const url = `${
     getConfig().stacksApi
-  }/extended/v1/address/${principle}/transactions?limit=${limit}&offset=${offset}`;
+  }/extended/v2/addresses/${principle}/transactions?limit=${limit}&offset=${offset}`;
   let val;
   try {
     const response = await fetch(url);

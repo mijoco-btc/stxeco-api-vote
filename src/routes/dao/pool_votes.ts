@@ -14,7 +14,7 @@ import {
 import { getCheckDelegation } from "@mijoco/stx_helpers/dist/pox/pox";
 import { Delegation } from "@mijoco/stx_helpers/dist/pox_types";
 
-const limit = 50;
+const limit = 20;
 const PRE_NAKAMOTO_REWARD_CYCLE = 88;
 const PRE_NAKAMOTO_STACKS_TIP_HEIGHT = 850850;
 
@@ -183,7 +183,7 @@ function isVoteAllowed(v: any, principle: string, burnBlockHeight: number) {
 async function getPoolVotes(offset: number, principle: string): Promise<any> {
   const url =
     getConfig().stacksApi +
-    "/extended/v1/address/" +
+    "/extended/v2/addresses/" +
     principle +
     "/transactions?limit=" +
     limit +
