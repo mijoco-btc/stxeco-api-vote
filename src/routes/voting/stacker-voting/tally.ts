@@ -302,7 +302,7 @@ export async function saveStackerBitcoinTxs(
       ) {
         bitcoinTxsYes.push(tx);
       } else {
-        console.log("Out of bounds vote tx: " + tx.txid);
+        console.log("saveStackerBitcoinTxs: Out of bounds yes tx: " + tx.txid);
       }
     }
   }
@@ -318,7 +318,7 @@ export async function saveStackerBitcoinTxs(
       ) {
         bitcoinTxsNo.push(tx);
       } else {
-        console.log("Out of bounds vote tx: " + tx.txid);
+        console.log("saveStackerBitcoinTxs: Out of bounds yes tx: " + tx.txid);
       }
     }
   }
@@ -355,17 +355,20 @@ export async function saveStackerStacksTxs(
       proposal.stackerData.stacksAddressYes
     );
     if (events?.results?.length > 0) {
-      for (const tx of events.results) {
+      for (const obj of events.results) {
         if (
           checkHeights(
-            tx.burn_block_height,
+            obj.tx.burn_block_height,
             proposal.proposalData.burnStartHeight,
             proposal.proposalData.burnEndHeight
           )
         ) {
-          stackerTxsYes.push(tx);
+          stackerTxsYes.push(obj.tx);
         } else {
-          console.log("Out of bounds vote tx: " + tx.tx_id);
+          console.log(
+            "getStacksTransactionsByAddress: Out of bounds yes tx: " +
+              obj.tx.tx_id
+          );
         }
       }
     }
@@ -385,17 +388,20 @@ export async function saveStackerStacksTxs(
       proposal.stackerData.stacksAddressNo
     );
     if (events?.results?.length > 0) {
-      for (const tx of events.results) {
+      for (const obj of events.results) {
         if (
           checkHeights(
-            tx.burn_block_height,
+            obj.tx.burn_block_height,
             proposal.proposalData.burnStartHeight,
             proposal.proposalData.burnEndHeight
           )
         ) {
-          stackerTxsNo.push(tx);
+          stackerTxsNo.push(obj.tx);
         } else {
-          console.log("Out of bounds vote tx: " + tx.tx_id);
+          console.log(
+            "getStacksTransactionsByAddress: Out of bounds no tx: " +
+              obj.tx.tx_id
+          );
         }
       }
     }
