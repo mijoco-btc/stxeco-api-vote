@@ -323,8 +323,16 @@ export async function saveStackerBitcoinTxs(
     }
   }
 
-  await convertBitcoinTxsToVotes(proposal, bitcoinTxsYes, true);
-  await convertBitcoinTxsToVotes(proposal, bitcoinTxsNo, false);
+  try {
+    await convertBitcoinTxsToVotes(proposal, bitcoinTxsYes, true);
+  } catch (err: any) {
+    console.log("saveStackerBitcoinTxs: bitcoinTxsYes: " + err.message);
+  }
+  try {
+    await convertBitcoinTxsToVotes(proposal, bitcoinTxsNo, false);
+  } catch (err: any) {
+    console.log("saveStackerBitcoinTxs: bitcoinTxsNo: " + err.message);
+  }
   return { bitcoinTxsYes, bitcoinTxsNo };
 }
 
@@ -381,8 +389,8 @@ export async function saveStackerStacksTxs(
         if (
           checkHeights(
             tx.burn_block_height,
-            proposal.stackerData.heights.burnStart,
-            proposal.stackerData.heights.burnEnd
+            proposal.proposalData.burnStartHeight,
+            proposal.proposalData.burnEndHeight
           )
         ) {
           stackerTxsNo.push(tx);
@@ -398,8 +406,17 @@ export async function saveStackerStacksTxs(
     "saveStackerStacksTxs: processing " + stackerTxsNo.length + " no stacks txs"
   );
 
-  await convertStacksTxsToVotes(proposal, stackerTxsYes, true);
-  await convertStacksTxsToVotes(proposal, stackerTxsNo, false);
+  try {
+    await convertStacksTxsToVotes(proposal, stackerTxsYes, true);
+  } catch (err: any) {
+    console.log("saveStackerBitcoinTxs: stackerTxsYes: " + err.message);
+  }
+
+  try {
+    await convertStacksTxsToVotes(proposal, stackerTxsNo, false);
+  } catch (err: any) {
+    console.log("saveStackerBitcoinTxs: stackerTxsNo: " + err.message);
+  }
 
   return { stackerTxsYes, stackerTxsNo };
 }
@@ -421,6 +438,7 @@ async function getStacksTransactionsByAddress(
   }/extended/v2/addresses/${principle}/transactions?limit=${limit}&offset=${offset}`;
   let val;
   try {
+    console.log("getStacksTransactionsByAddress: url: " + url);
     const response = await fetch(url);
     val = await response.json();
   } catch (err) {
@@ -519,13 +537,13 @@ async function convertBitcoinTxsToVotes(
         try {
           await saveVote(potVote);
           console.log(
-            "convertStacksTxsToVotes: saved vote from voter:" + potVote.voter
+            "convertBitcoinTxsToVotes: saved vote from voter:" + potVote.voter
           );
           votes.push(potVote);
         } catch (err: any) {
           // duplicate bids from same bidder are counted as first bid
           console.log(
-            "convertStacksTxsToVotes: ignored subsequent vote by:" +
+            "convertBitcoinTxsToVotes: ignored subsequent vote by:" +
               potVote.voter
           );
         }
@@ -534,7 +552,7 @@ async function convertBitcoinTxsToVotes(
         );
       }
     } catch (err: any) {
-      console.log("addToMongoDB: solo vote: " + err.message);
+      console.log("convertBitcoinTxsToVotes: error solo vote: " + err.message);
     }
   }
   return votes;
