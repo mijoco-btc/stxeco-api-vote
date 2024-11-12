@@ -27,6 +27,11 @@ import { sha256 } from "@noble/hashes/sha256";
 import { ripemd160 } from "@noble/hashes/ripemd160";
 import * as btc from "@scure/btc-signer";
 import { c32address } from "c32check";
+import { findStackerVotesByProposalAndMethod } from "../../routes/voting/stacker-voting/vote_count_helper";
+import {
+  poolStackerAddresses,
+  soloStackerAddresses,
+} from "../../routes/dao/solo_pool_addresses";
 
 export async function getSummary(proposalId: string): Promise<any> {
   const proposal = await fetchLatestProposal(proposalId);
@@ -89,6 +94,89 @@ export async function getSummary(proposalId: string): Promise<any> {
     summaryWithZeros,
     uniquePoolVoters: uv.filter((o) => o._id.event === "pool-vote").length,
     uniqueSoloVoters: uv.filter((o) => o._id.event === "solo-vote").length,
+  };
+}
+
+export async function getSummaryNodao(proposalId: string): Promise<any> {
+  const proposal = await fetchLatestProposal(proposalId);
+  if (!proposal) return;
+  const poolVotes = await findStackerVotesByProposalAndMethod(
+    proposalId,
+    "pool-vote"
+  );
+  const poolAddresses = poolStackerAddresses(getConfig().network);
+  const soloVotes = await findStackerVotesByProposalAndMethod(
+    proposalId,
+    "solo-vote"
+  );
+  const soloAddresses = soloStackerAddresses(getConfig().network);
+
+  const bitcoinVotes = soloVotes?.filter((o: any) => o.amount > 0) || [];
+  const stacksVotes = poolVotes?.filter((o: any) => o.amount > 0) || [];
+
+  const uniqueAccounts =
+    (bitcoinVotes?.length || 0) + (stacksVotes?.length || 0);
+  const bSumFor = bitcoinVotes.filter((o) => o.for).length;
+  const bSumAg = bitcoinVotes.filter((o) => !o.for).length;
+  const sSumFor = stacksVotes.filter((o) => o.for && o.amount > 0).length;
+  const sSumAg = stacksVotes.filter((o) => !o.for && o.amount > 0).length;
+
+  const bTotalFor = bitcoinVotes
+    .filter((o) => o.for)
+    .reduce((n, { amount }) => n + amount, 0);
+  const bTotalAg = bitcoinVotes
+    .filter((o) => !o.for)
+    .reduce((n, { amount }) => n + amount, 0);
+  const sTotalFor = stacksVotes
+    .filter((o) => o.for)
+    .reduce((n, { amount }) => n + amount, 0);
+  const sTotalAg = stacksVotes
+    .filter((o) => !o.for)
+    .reduce((n, { amount }) => n + amount, 0);
+  const sUnlockedFor = stacksVotes
+    .filter((o) => o.for)
+    .reduce((n, { amountUnlocked }) => n + amountUnlocked, 0);
+  const sUnlockedAg = stacksVotes
+    .filter((o) => !o.for)
+    .reduce((n, { amountUnlocked }) => n + amountUnlocked, 0);
+  const sLockedFor = stacksVotes
+    .filter((o) => o.for)
+    .reduce((n, { amountLocked }) => n + amountLocked, 0);
+  const sLockedAg = stacksVotes
+    .filter((o) => !o.for)
+    .reduce((n, { amountLocked }) => n + amountLocked, 0);
+
+  const totalLockedFor = bTotalFor + sLockedFor;
+  const totalLockedAg = bTotalAg + sLockedAg;
+  const totalLockedPower = totalLockedFor + totalLockedAg;
+  const lockedPercent = ((totalLockedFor / totalLockedPower) * 100).toFixed(4);
+
+  const totalUnlockedFor = sUnlockedFor;
+  const totalUnlockedAg = sUnlockedAg;
+  const totalUnlockedPower = totalUnlockedFor + totalUnlockedAg;
+  const unlockedPercent = (
+    (totalUnlockedFor / totalUnlockedPower) *
+    100
+  ).toFixed(4);
+  return {
+    proposalData: proposal.proposalData,
+    totalUnlockedFor,
+    totalUnlockedAg,
+    totalUnlockedPower,
+    unlockedPercent,
+    totalLockedFor,
+    totalLockedAg,
+    totalLockedPower,
+    lockedPercent,
+    uniqueAccounts,
+    bTotalFor,
+    bTotalAg,
+    sTotalFor,
+    sTotalAg,
+    bSumFor,
+    bSumAg,
+    sSumFor,
+    sSumAg,
   };
 }
 

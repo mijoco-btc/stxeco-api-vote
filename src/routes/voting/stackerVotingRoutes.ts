@@ -5,7 +5,7 @@ import {
   VoteEvent,
   VotingEventProposeProposal,
 } from "@mijoco/stx_helpers/dist/index";
-import { getSummary } from "../../lib/events/proposal";
+import { getSummary, getSummaryNodao } from "../../lib/events/proposal";
 import { findStackerVotesByProposalAndSource } from "./stacker-voting/vote_count_helper";
 import {
   reconcileVotes,
@@ -97,6 +97,16 @@ router.get("/results/solo-stackers/:address", async (req, res, next) => {
 router.get("/results/summary/:proposal", async (req, res, next) => {
   try {
     const summary = await getSummary(req.params.proposal);
+    return res.send(summary);
+  } catch (error) {
+    console.log("Error in routes: ", error);
+    next("An error occurred fetching pox-info.");
+  }
+});
+
+router.get("/results/summary-nodao/:proposal", async (req, res, next) => {
+  try {
+    const summary = await getSummaryNodao(req.params.proposal);
     return res.send(summary);
   } catch (error) {
     console.log("Error in routes: ", error);
