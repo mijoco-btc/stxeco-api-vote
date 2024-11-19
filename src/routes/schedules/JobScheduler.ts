@@ -30,7 +30,7 @@ export const readVotes = cron.schedule("5 */3  * * *", async (fireDate) => {
   try {
     console.log("NOT Running: readVotes at: " + fireDate);
     const proposal: VotingEventProposeProposal = await fetchProposeEvent(
-      "SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.sip028-signer-criteria-for-sbtc"
+      "SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.sip029-preserving-economic-incentives"
     );
     await saveStackerBitcoinTxs(proposal);
     await saveStackerStacksTxs(proposal);
