@@ -1,15 +1,11 @@
 /**
  * sbtc - interact with Stacks Blockchain to read sbtc contract info
  */
-import { stringAsciiCV, cvToJSON, deserializeCV, contractPrincipalCV, serializeCV, principalCV, uintCV } from '@stacks/transactions';
+import { cvToJSON, deserializeCV, contractPrincipalCV, serializeCV, principalCV, uintCV } from '@stacks/transactions';
 import { hex } from '@scure/base';
 import { getConfig } from '../../lib/config';
-import { findProposalByContractId, saveOrUpdateProposal } from '../../lib/data/db_models';
 import { getDaoConfig } from '../../lib/config_dao';
-import { countsVotesByMethod, saveOrUpdateVote } from '../voting/stacker-voting/vote_count_helper';
-import { FundingData, GovernanceData, NFTHolding, NFTHoldings, ProposalContract, ProposalData, ProposalEvent, ProposalStage, SignalData, SubmissionData, TentativeProposal, VoteEvent, VotingEventProposeProposal, callContractReadOnly, fetchDataVar } from '@mijoco/stx_helpers/dist/index';
-import { fetchProposeEvent } from '../../lib/events/event_helper_voting_contract';
-import { getFunding, getMetaData, getProposalContractSource, getProposalData } from '../../lib/events/proposal';
+import { GovernanceData, NFTHolding, NFTHoldings, SignalData, SubmissionData, callContractReadOnly, fetchDataVar } from '@mijoco/stx_helpers/dist/index';
 
 let uris:any = {};
 const gateway = "https://hashone.mypinata.cloud/";
@@ -183,55 +179,6 @@ export async function getProposalsByTrait() {
   return edaoProposals;
 }
 
-export async function getProposalFromContractId(contractId:string):Promise<ProposalEvent|undefined> {
-  let proposal:ProposalEvent|undefined = undefined;
-  try {
-    const proposeEvent:VotingEventProposeProposal = await fetchProposeEvent(contractId)
-    if (!proposeEvent) return;
-    const proposalContractId = contractId
-    let contract;
-    try {
-      contract = await getProposalContractSource(proposalContractId)
-      if (!contract) return;
-    } catch(err:any) {
-      return;
-    }
-    let proposalMeta;
-    let funding;
-    let signals;
-    let stage = ProposalStage.PARTIAL_FUNDING;
-    try {
-      funding = await getFunding(proposeEvent.submissionContract, proposalContractId);
-      if (funding.funding === 0) stage = ProposalStage.UNFUNDED
-      //signals = await getSignals(proposalContractId)
-      proposalMeta = getMetaData(contract.source)
-    } catch (err:any) {
-      console.log('getProposalFromContractId: funding: ' + err.message)
-    }
-    let proposalData:ProposalData|undefined;
-    try {
-      proposalData = await getProposalData(proposalContractId, proposalContractId)
-    } catch (err:any) { 
-      console.log('getProposalFromContractId: proposalData1: ' + err.message)
-    }
-    const p = {
-      contract,
-      proposalMeta,
-      contractId: proposalContractId,
-      submissionData: { contractId: proposeEvent.submissionContract, transaction: undefined },
-      signals,
-      stage,
-      funding
-    } as ProposalEvent
-    if (proposalData) p.proposalData = proposalData
-    saveOrUpdateProposal(p)
-    proposal = p
-  } catch(err:any) {
-    console.log('getProposalFromContractId: proposalData2: ' + err.message)
-    return
-  }
-  return proposal
-}
 
 export async function getGovernanceData(principle:string):Promise<GovernanceData> {
   try {
