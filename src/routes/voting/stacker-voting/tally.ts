@@ -382,6 +382,7 @@ export async function saveStackerStacksTxs(
       " yes stacks txs"
   );
 
+  offset = 0;
   do {
     events = await getStacksTransactionsByAddress(
       offset,
