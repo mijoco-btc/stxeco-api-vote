@@ -387,6 +387,8 @@ export async function saveStackerStacksTxs(
       offset,
       proposal.stackerData.stacksAddressNo
     );
+    console.log("no stacks address: " + proposal.stackerData.stacksAddressNo);
+    console.log("no stacks events: " + events.length);
     if (events?.results?.length > 0) {
       for (const obj of events.results) {
         if (
@@ -413,12 +415,14 @@ export async function saveStackerStacksTxs(
   );
 
   try {
+    console.log("number of yes stacks txs: " + stackerTxsYes.length);
     await convertStacksTxsToVotes(proposal, stackerTxsYes, true);
   } catch (err: any) {
     console.log("saveStackerBitcoinTxs: stackerTxsYes: " + err.message);
   }
 
   try {
+    console.log("number of no stacks txs: " + stackerTxsNo.length);
     await convertStacksTxsToVotes(proposal, stackerTxsNo, false);
   } catch (err: any) {
     console.log("saveStackerBitcoinTxs: stackerTxsNo: " + err.message);
@@ -432,7 +436,17 @@ function checkHeights(
   minBurnHeight: number,
   maxBurnHeight: number
 ): boolean {
-  return height >= minBurnHeight && height <= maxBurnHeight;
+  const result = height >= minBurnHeight && height <= maxBurnHeight;
+  if (!result)
+    console.log(
+      "Failed block height check: " +
+        height +
+        " minBurnHeight: " +
+        minBurnHeight +
+        " maxBurnHeight: " +
+        maxBurnHeight
+    );
+  return result;
 }
 
 async function getStacksTransactionsByAddress(
