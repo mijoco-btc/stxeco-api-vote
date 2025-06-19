@@ -20,7 +20,7 @@ source ~/.profile;
 #cd ~/hubgit/stxeco/stxeco-api-vote
 #git pull https://github.com/radicleart/stxeco-api-vote.git daoless
 docker login;
-docker build -t $DOCKER_NAME .
+docker build -t mijoco/stxeco_api_vote .
 docker tag mijoco/stxeco_api_vote mijoco/stxeco_api_vote
 docker push mijoco/stxeco_api_vote:latest
 
