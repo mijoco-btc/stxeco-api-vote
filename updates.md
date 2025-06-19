@@ -5,6 +5,10 @@
 Nakamoto onwards voting addresses - note these are generic yes/no addresses and can
 be reused for different ;
 
+## sip031-stacks-growth-emissions
+
+db.votingContractEventCollection.findAndModify({query: {proposal: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.sip031-stacks-growth-emissions', event:'propose'}, sort: {name: 1}, update: {$set: {stackerData: { sip: true, nodao: true, stacksAddressYes: 'SP36GHEPEZPGD53G2F29P5NEY884DXQR7TX90QE3T',stacksAddressNo: 'SP3YAKFMGWSSATYNCKXKJHE2Z5JJ6DH88E4T8XJPK',bitcoinAddressYes: '3Jq9UT81fnT2t24XjNVY7wijpsSmNSivbK',bitcoinAddressNo: '3QGZ1fDa97yZCXpAnXQd6JHF4CBC6bk1r4' },links: [{name: 'SIP-031: Five-Year Stacks Growth Emissions', href: 'https://github.com/stacksgov/sips/blob/a5574f1f9bad6ceb9a580592c065010b0aaef65e/sips/sip-031/sip-031.md',display: 'sip031-stacks-growth-emissions', target: '_blank',} ]}}, upsert: false, new: true, fields: {proposal: 1, event: 1}})
+
 ## sip029-stx-halving-schedule-alignment
 
 db.votingContractEventCollection.findAndModify({query: {proposal: 'SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.sip029-preserving-economic-incentives', event:'conclude'}, sort: {name: 1}, update: {$set: {stackerData: { sip: true, nodao: true, heights:{burnStart:870750, burnEnd:872750, stacksStart:232570, stacksEnd:0 }, stacksAddressYes: 'SP00000000001WPAWSDEDMQ0B9J76GZNR3T',stacksAddressNo: 'SP000000000006WVSDEDMQ0B9J76NCZPNZ',bitcoinAddressYes: '11111111111mdWK2VXcrA1e7in77Ux',bitcoinAddressNo: '111111111111ACW5wa4RwyeKgtEJz3' },links: [{name: 'Preserving Economic Incentives During Stacks Network Upgrades', href: 'https://github.com/stacksgov/sips/blob/38e687411804a8a527e4628e3ecbb6d18f423b5d/sips/sip-029/sip-029-halving-alignment.md',display: 'Preserving Economic Incentives During Stacks Network Upgrades', target: '_blank',} ]}}, upsert: false, new: true, fields: {proposal: 1, event: 1}})
