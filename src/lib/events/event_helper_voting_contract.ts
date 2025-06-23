@@ -107,13 +107,13 @@ async function resolveExtensionEvents(url: string, currentOffset: number, count:
 
 async function processEvent(event: any, daoContract: string, votingContract: string) {
   const result = cvToJSON(deserializeCV(event.contract_log.value.hex));
-  console.log("processEvent: new event: " + result.value.event.value + " contract=" + event.event_index + " / " + event.tx_id);
+  //console.log("processEvent: new event: " + result.value.event.value + " contract=" + event.event_index + " / " + event.tx_id);
 
   if (result.value.event.value === "propose") {
     const proposal = result.value.proposal.value;
 
     let contract: ProposalContract = await getProposalContractSource(proposal);
-    //console.log('processEvent: execute: ', util.inspect(event, false, null, true /* enable colors */))
+    console.log("processEvent: execute: ", event);
     const votingContractEvent = {
       _id: new ObjectId(),
       event: "propose",

@@ -54,7 +54,7 @@ export const initScanDaoEventsJob = cron.schedule("30 */2 * * *", async (fireDat
 export const initScanVotingEventsJob = cron.schedule("* * * * *", async (fireDate) => {
   console.log("Running: initScanVotingEventsJob at: " + fireDate);
   try {
-    await scanVoting(true);
+    await scanVoting(false);
   } catch (err) {
     console.log("Error running: ede007-snapshot-proposal-voting: ", err);
   }
