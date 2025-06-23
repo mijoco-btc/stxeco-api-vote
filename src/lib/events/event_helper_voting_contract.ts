@@ -39,7 +39,7 @@ export async function toggleSipStatus(proposalId: string) {
 
 export async function scanVoting(genesis: boolean) {
   try {
-    await readVotingEvents(genesis, `${getDaoConfig().VITE_DOA_DEPLOYER}.ecosystem-dao`, `${getDaoConfig().VITE_DOA_DEPLOYER}.ede007-snapshot-proposal-voting`);
+    //await readVotingEvents(genesis, `${getDaoConfig().VITE_DOA_DEPLOYER}.ecosystem-dao`, `${getDaoConfig().VITE_DOA_DEPLOYER}.ede007-snapshot-proposal-voting`);
   } catch (err) {
     console.log("Error running: ede007-snapshot-proposal-voting: ", err);
   }
@@ -47,6 +47,7 @@ export async function scanVoting(genesis: boolean) {
   console.log("scanVoting: votingContracts " + getDaoConfig().VITE_DOA_VOTING_CONTRACTS);
   for (const vc of vcs) {
     try {
+      console.log("readVotingEvents: contract: " + vc);
       await readVotingEvents(genesis, `${getDaoConfig().VITE_DOA_DEPLOYER}.bitcoin-dao`, `${getDaoConfig().VITE_DOA_DEPLOYER}.${vc}`);
     } catch (err) {
       console.log("Error running: bde007-snapshot-proposal-voting: ", err);
