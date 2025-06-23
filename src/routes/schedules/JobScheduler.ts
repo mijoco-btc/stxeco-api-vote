@@ -43,7 +43,7 @@ export const initScanDaoEventsJob = cron.schedule("30 */2 * * *", async (fireDat
   console.log("Running: initScanDaoEventsJob at: " + fireDate);
   for (const dao of getDaoConfig().VITE_DOAS.split(",")) {
     try {
-      await readDaoEvents(true, `${getDaoConfig().VITE_DOA_DEPLOYER}.${dao}`);
+      await readDaoEvents(false, `${getDaoConfig().VITE_DOA_DEPLOYER}.${dao}`);
     } catch (err) {
       console.log("Error running: ecosystem-dao: ", err);
     }

@@ -7,7 +7,7 @@ be reused for different ;
 
 ## sip031-stacks-growth-emissions
 
-db.votingContractEventCollection.findAndModify({query: {proposal: 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.sip031-stacks-growth-emissions', event:'propose'}, sort: {name: 1}, update: {$set: {stackerData: { sip: true, nodao: true, stacksAddressYes: 'SP00000000001WPAWSDEDMQ0B9K6781ESE6',stacksAddressNo: 'SP000000000006WVSDEDMQ0B9K673FGT7V',bitcoinAddressYes: '11111111111mdWK2VXcrA1ebnetG5Y',bitcoinAddressNo: '111111111111ACW5wa4RwyeogEk2ay' },links: [{name: 'SIP-031: Five-Year Stacks Growth Emissions', href: 'https://github.com/stacksgov/sips/blob/a5574f1f9bad6ceb9a580592c065010b0aaef65e/sips/sip-031/sip-031.md',display: 'sip031-stacks-growth-emissions', target: '_blank',} ]}}, upsert: false, new: true, fields: {proposal: 1, event: 1}})
+db.votingContractEventCollection.findAndModify({query: {proposal: 'SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.sip031-stacks-growth-emissions', event:'propose'}, sort: {name: 1}, update: {$set: {stackerData: { sip: true, nodao: true, stacksAddressYes: 'SP00000000001WPAWSDEDMQ0B9K6781ESE6',stacksAddressNo: 'SP000000000006WVSDEDMQ0B9K673FGT7V',bitcoinAddressYes: '11111111111mdWK2VXcrA1ebnetG5Y',bitcoinAddressNo: '111111111111ACW5wa4RwyeogEk2ay' },links: [{name: 'SIP-031: Five-Year Stacks Growth Emissions', href: 'https://github.com/stacksgov/sips/blob/a5574f1f9bad6ceb9a580592c065010b0aaef65e/sips/sip-031/sip-031.md',display: 'sip031-stacks-growth-emissions', target: '_blank',} ]}}, upsert: false, new: true, fields: {proposal: 1, event: 1}})
 
 ## sip029-stx-halving-schedule-alignment
 
