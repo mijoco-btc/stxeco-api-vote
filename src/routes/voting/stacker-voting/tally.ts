@@ -254,7 +254,7 @@ export async function saveStackerStacksTxs(proposal: VotingEventProposeProposal)
       }
     }
     offset += limit;
-  } while (events?.results?.length || 0 > 0);
+  } while (events && events.results && events.results.length > 0);
 
   console.log("saveStackerStacksTxs: processing " + stackerTxsNo?.length + " no stacks txs");
 
