@@ -171,8 +171,8 @@ export async function saveStackerBitcoinTxs(proposal: VotingEventProposeProposal
   const allYesResults: Array<any> = await fetchAddressTransactions(getConfig().mempoolUrl, proposal.stackerData.bitcoinAddressYes);
   const allNoResults: Array<any> = await fetchAddressTransactions(getConfig().mempoolUrl, proposal.stackerData.bitcoinAddressNo);
 
-  console.log("saveStackerBitcoinTxs: processing: " + allYesResults.length + " bitcoin yes votes");
-  console.log("saveStackerBitcoinTxs: processing: " + allNoResults.length + " bitcoin no votes");
+  console.log("saveStackerBitcoinTxs: processing: " + (allYesResults?.length || 0) + " bitcoin yes votes");
+  console.log("saveStackerBitcoinTxs: processing: " + (allNoResults?.length || 0) + " bitcoin no votes");
 
   if (allYesResults) {
     for (const tx of allYesResults) {
@@ -221,40 +221,48 @@ export async function saveStackerStacksTxs(proposal: VotingEventProposeProposal)
   let offset = 0; //await countContractEvents();
   let events: any;
 
-  do {
-    events = await getStacksTransactionsByAddress(offset, proposal.stackerData.stacksAddressYes);
-    if (events?.results?.length > 0) {
-      for (const obj of events.results) {
-        if (checkHeights(obj.tx.burn_block_height, proposal.proposalData.burnStartHeight, proposal.proposalData.burnEndHeight)) {
-          stackerTxsYes.push(obj.tx);
-        } else {
-          console.log("getStacksTransactionsByAddress: Out of bounds yes tx: " + obj.tx.tx_id);
+  try {
+    do {
+      events = await getStacksTransactionsByAddress(offset, proposal.stackerData.stacksAddressYes);
+      console.log("stacks address [yes]: " + proposal.stackerData.stacksAddressYes);
+      if (events?.results?.length > 0) {
+        for (const obj of events.results) {
+          if (checkHeights(obj.tx.burn_block_height, proposal.proposalData.burnStartHeight, proposal.proposalData.burnEndHeight)) {
+            stackerTxsYes.push(obj.tx);
+          } else {
+            console.log("getStacksTransactionsByAddress: Out of bounds yes tx: " + obj.tx.tx_id);
+          }
         }
       }
-    }
-    offset += limit;
-    await delay(500);
-  } while (events.results.length > 0);
+      offset += limit;
+      await delay(500);
+    } while (events.results.length > 0);
+  } catch (err: any) {
+    console.log("saveStackerBitcoinTxs: getStacksTransactionsByAddress: " + err.message);
+  }
 
-  console.log("saveStackerStacksTxs: processing " + stackerTxsYes.length + " yes stacks txs");
+  console.log("saveStackerStacksTxs: processing " + (stackerTxsYes?.length || 0) + " yes stacks txs");
 
   offset = 0;
-  do {
-    events = await getStacksTransactionsByAddress(offset, proposal.stackerData.stacksAddressNo);
-    console.log("stacks address [yes]: " + proposal.stackerData.stacksAddressYes);
-    console.log("stacks address [no]: " + proposal.stackerData.stacksAddressNo);
-    if (events?.results?.length > 0) {
-      console.log("no stacks events: " + (events?.results?.length ?? 0));
-      for (const obj of events.results) {
-        if (checkHeights(obj.tx.burn_block_height, proposal.proposalData.burnStartHeight, proposal.proposalData.burnEndHeight)) {
-          stackerTxsNo.push(obj.tx);
-        } else {
-          console.log("getStacksTransactionsByAddress: Out of bounds no tx: " + obj.tx.tx_id);
+  try {
+    do {
+      events = await getStacksTransactionsByAddress(offset, proposal.stackerData.stacksAddressNo);
+      console.log("stacks address [no]: " + proposal.stackerData.stacksAddressNo);
+      if (events?.results?.length > 0) {
+        console.log("no stacks events: " + (events?.results?.length || 0));
+        for (const obj of events.results) {
+          if (checkHeights(obj.tx.burn_block_height, proposal.proposalData.burnStartHeight, proposal.proposalData.burnEndHeight)) {
+            stackerTxsNo.push(obj.tx);
+          } else {
+            console.log("getStacksTransactionsByAddress: Out of bounds no tx: " + obj.tx.tx_id);
+          }
         }
       }
-    }
-    offset += limit;
-  } while (events && events.results && events.results.length > 0);
+      offset += limit;
+    } while (events && events.results && events.results.length > 0);
+  } catch (err: any) {
+    console.log("saveStackerBitcoinTxs: getStacksTransactionsByAddress: " + err.message);
+  }
 
   console.log("saveStackerStacksTxs: processing " + stackerTxsNo?.length + " no stacks txs");
 
