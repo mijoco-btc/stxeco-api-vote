@@ -244,7 +244,7 @@ export async function saveStackerStacksTxs(proposal: VotingEventProposeProposal)
     console.log("stacks address [yes]: " + proposal.stackerData.stacksAddressYes);
     console.log("stacks address [no]: " + proposal.stackerData.stacksAddressNo);
     if (events?.results?.length > 0) {
-      console.log("number stacks events: " + events.length);
+      console.log("no stacks events: " + (events?.results?.length ?? 0));
       for (const obj of events.results) {
         if (checkHeights(obj.tx.burn_block_height, proposal.proposalData.burnStartHeight, proposal.proposalData.burnEndHeight)) {
           stackerTxsNo.push(obj.tx);
@@ -254,19 +254,19 @@ export async function saveStackerStacksTxs(proposal: VotingEventProposeProposal)
       }
     }
     offset += limit;
-  } while (events.results.length > 0);
+  } while (events?.results?.length || 0 > 0);
 
-  console.log("saveStackerStacksTxs: processing " + stackerTxsNo.length + " no stacks txs");
+  console.log("saveStackerStacksTxs: processing " + stackerTxsNo?.length + " no stacks txs");
 
   try {
-    console.log("number of yes stacks txs: " + stackerTxsYes.length);
+    console.log("number of yes stacks txs: " + stackerTxsYes?.length || 0);
     await convertStacksTxsToVotes(proposal, stackerTxsYes, true);
   } catch (err: any) {
     console.log("saveStackerBitcoinTxs: stackerTxsYes: " + err.message);
   }
 
   try {
-    console.log("number of no stacks txs: " + stackerTxsNo.length);
+    console.log("number of no stacks txs: " + stackerTxsNo?.length || 0);
     await convertStacksTxsToVotes(proposal, stackerTxsNo, false);
   } catch (err: any) {
     console.log("saveStackerBitcoinTxs: stackerTxsNo: " + err.message);
@@ -296,7 +296,7 @@ async function getStacksTransactionsByAddress(offset: number, principle: string)
 
 async function convertStacksTxsToVotes(proposal: VotingEventProposeProposal, txs: Array<any>, vfor: boolean): Promise<Array<VoteEvent>> {
   const votes: Array<VoteEvent> = [];
-  console.log("addToMongoDB: transactions: " + vfor + " : " + txs.length);
+  console.log("addToMongoDB: transactions: " + vfor + " : " + txs?.length || 0);
   for (const v of txs) {
     //const stackerInfo = await getStackerInfoAtTip(proposal.proposalData.startBlockHeight, v.sender_address)
     //const stackerDel = await getCheckDelegationAtTip(proposal.proposalData.startBlockHeight, v.sender_address)
