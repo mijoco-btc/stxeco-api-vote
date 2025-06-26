@@ -241,9 +241,10 @@ export async function saveStackerStacksTxs(proposal: VotingEventProposeProposal)
   offset = 0;
   do {
     events = await getStacksTransactionsByAddress(offset, proposal.stackerData.stacksAddressNo);
-    console.log("no stacks address: " + proposal.stackerData.stacksAddressNo);
-    console.log("no stacks events: " + events.length);
+    console.log("stacks address [yes]: " + proposal.stackerData.stacksAddressYes);
+    console.log("stacks address [no]: " + proposal.stackerData.stacksAddressNo);
     if (events?.results?.length > 0) {
+      console.log("number stacks events: " + events.length);
       for (const obj of events.results) {
         if (checkHeights(obj.tx.burn_block_height, proposal.proposalData.burnStartHeight, proposal.proposalData.burnEndHeight)) {
           stackerTxsNo.push(obj.tx);
