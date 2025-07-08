@@ -36,7 +36,7 @@ export async function reconcileVotes(proposal: VotingEventProposeProposal): Prom
         console.log("reconcileVotes: unknown source", vote);
       }
     } else {
-      console.log("reconcileVotes: already reconciled vote" + vote.voter + " amount: " + vote.amount);
+      console.log("reconcileVotes: already reconciled voter: " + vote.voter + " amount: " + vote.amount);
     }
   }
   //if (voteEvent.source === 'bitcoin') {
@@ -124,6 +124,7 @@ export async function reconcileBitcoinVoteViaPoxEntries(proposal: VotingEventPro
   let counter = 0;
   let amountUstx = 0;
   let changes = {} as any;
+  console.log("reconcileBitcoinVoteViaPoxEntries: bitcoin vote: " + vote.amount + " voter: " + vote.voter);
 
   const totalUstxInCycle1 = (await getTotalStackedInCycle(vote.voter, cycle1)) || 0;
   const totalUstxInCycle2 = (await getTotalStackedInCycle(vote.voter, cycle1 + 1)) || 0;
