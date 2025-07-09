@@ -224,7 +224,8 @@ export async function saveStackerStacksTxs(proposal: VotingEventProposeProposal)
 
   try {
     do {
-      events = await getStacksTransactionsByAddress(offset, proposal.stackerData.stacksAddressYes);
+      const newEvents = await getStacksTransactionsByAddress(offset, proposal.stackerData.stacksAddressYes);
+      events = newEvents || { results: [] }; // ensure fallback
       console.log("stacks address [yes]: " + proposal.stackerData.stacksAddressYes);
       if (events?.results?.length > 0) {
         for (const obj of events.results) {
@@ -237,7 +238,7 @@ export async function saveStackerStacksTxs(proposal: VotingEventProposeProposal)
       }
       offset += limit;
       await delay(500);
-    } while (events.results.length > 0);
+    } while (events?.results?.length > 0);
   } catch (err: any) {
     console.log("saveStackerBitcoinTxs: getStacksTransactionsByAddress: " + err.message);
   }
@@ -247,7 +248,8 @@ export async function saveStackerStacksTxs(proposal: VotingEventProposeProposal)
   offset = 0;
   try {
     do {
-      events = await getStacksTransactionsByAddress(offset, proposal.stackerData.stacksAddressNo);
+      const newEvents = await getStacksTransactionsByAddress(offset, proposal.stackerData.stacksAddressNo);
+      events = newEvents || { results: [] }; // ensure fallback
       console.log("stacks address [no]: " + proposal.stackerData.stacksAddressNo);
       if (events?.results?.length > 0) {
         console.log("no stacks events: " + (events?.results?.length || 0));
@@ -260,7 +262,7 @@ export async function saveStackerStacksTxs(proposal: VotingEventProposeProposal)
         }
       }
       offset += limit;
-    } while (events && events.results && events.results.length > 0);
+    } while (events?.results?.length > 0);
   } catch (err: any) {
     console.log("saveStackerBitcoinTxs: getStacksTransactionsByAddress: " + err.message);
   }
