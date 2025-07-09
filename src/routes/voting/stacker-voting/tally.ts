@@ -384,11 +384,11 @@ async function convertStacksTxsToVotes(proposal: VotingEventProposeProposal, txs
         votes.push(potVote);
       } catch (err: any) {
         counter2++;
-        //console.log("convertStacksTxsToVotes: ignored subsequent vote by:" + potVote.voter);
+        console.log("convertStacksTxsToVotes: ignored subsequent vote by:," + potVote.voter + "," + potVote.submitTxId);
       }
     } else {
       counter3++;
-      //console.log("convertStacksTxsToVotes: already counted:" + existingVote.amount + " : " + existingVote.voter);
+      console.log("convertStacksTxsToVotes: already counted: ," + existingVote.amount + "," + existingVote.voter + "," + existingVote.submitTxId);
     }
   }
   console.log("convertStacksTxsToVotes: saved votes: " + vfor + " : " + counter1);
