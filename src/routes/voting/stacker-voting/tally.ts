@@ -303,18 +303,54 @@ async function getStacksTransactionsByAddress(offset: number, principle: string)
   return val;
 }
 
+// async function convertStacksTxsToVotes(proposal: VotingEventProposeProposal, txs: Array<any>, vfor: boolean): Promise<Array<VoteEvent>> {
+//   const votes: Array<VoteEvent> = [];
+//   console.log("addToMongoDB: transactions: " + vfor + " : " + txs?.length || 0);
+//   for (const v of txs) {
+//     //const stackerInfo = await getStackerInfoAtTip(proposal.proposalData.startBlockHeight, v.sender_address)
+//     //const stackerDel = await getCheckDelegationAtTip(proposal.proposalData.startBlockHeight, v.sender_address)
+//     //console.log('getCheckDelegationAtTip: ', stackerDel)
+
+//     const existingVote = await findStackerVoteByProposalAndVoter(proposal.proposal, v.sender_address);
+//     if (!existingVote || existingVote.amount === 0) {
+//       const potVote: any = {
+//         //amount: (stackerDel && stackerDel.amount) ? stackerDel.amount : 0,
+//         amount: 0,
+//         for: vfor,
+//         proposalContractId: proposal.proposal,
+//         submitTxId: v.tx_id,
+//         event: "pool-or-solo-vote",
+//         source: "stacks",
+//         votingContractId: proposal.votingContract,
+//         voter: v.sender_address,
+//         blockHeight: v.block_height,
+//         burnBlockHeight: v.burn_block_height,
+//         reconciled: false,
+//       };
+//       try {
+//         await saveVote(potVote);
+//         console.log("convertStacksTxsToVotes: saved vote from voter:" + potVote.voter);
+//         votes.push(potVote);
+//       } catch (err: any) {
+//         // duplicate bids from same bidder are counted as first bid
+//         console.log("convertStacksTxsToVotes: ignored subsequent vote by:" + potVote.voter);
+//       }
+//     } else {
+//       console.log("convertStacksTxsToVotes: already recorded vote by:" + v.voter);
+//     }
+//   }
+//   return votes;
+// }
+
 async function convertStacksTxsToVotes(proposal: VotingEventProposeProposal, txs: Array<any>, vfor: boolean): Promise<Array<VoteEvent>> {
   const votes: Array<VoteEvent> = [];
-  console.log("addToMongoDB: transactions: " + vfor + " : " + txs?.length || 0);
+  console.log("convertStacksTxsToVotes: transactions: " + vfor + " : " + txs?.length || 0);
   for (const v of txs) {
-    //const stackerInfo = await getStackerInfoAtTip(proposal.proposalData.startBlockHeight, v.sender_address)
-    //const stackerDel = await getCheckDelegationAtTip(proposal.proposalData.startBlockHeight, v.sender_address)
-    //console.log('getCheckDelegationAtTip: ', stackerDel)
+    await delay(500);
 
     const existingVote = await findStackerVoteByProposalAndVoter(proposal.proposal, v.sender_address);
     if (!existingVote || existingVote.amount === 0) {
       const potVote: any = {
-        //amount: (stackerDel && stackerDel.amount) ? stackerDel.amount : 0,
         amount: 0,
         for: vfor,
         proposalContractId: proposal.proposal,
@@ -332,7 +368,6 @@ async function convertStacksTxsToVotes(proposal: VotingEventProposeProposal, txs
         console.log("convertStacksTxsToVotes: saved vote from voter:" + potVote.voter);
         votes.push(potVote);
       } catch (err: any) {
-        // duplicate bids from same bidder are counted as first bid
         console.log("convertStacksTxsToVotes: ignored subsequent vote by:" + potVote.voter);
       }
     } else {
