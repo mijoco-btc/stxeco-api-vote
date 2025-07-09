@@ -17,12 +17,17 @@ export async function reconcileVotes(proposal: VotingEventProposeProposal): Prom
   const cycle1 = Number(cycle1CV.cycle.value);
 
   const votes = await findStackerVotesByProposal(proposal.proposal);
+  let counter1 = 0;
+  let counter2 = 0;
+
   for (const vote of votes) {
     if (vote.amount === 0) {
-      await delay(500);
+      await delay(400);
       if (vote.source === "stacks") {
         try {
-          await reconcileVoteViaStacks(proposal, vote);
+          const res = await reconcileVoteViaStacks(proposal, vote);
+          if (res) counter1++;
+          else counter2++;
         } catch (err: any) {
           console.error("reconcileVotes: reconcileVoteViaStacks: error: " + err.message);
         }
@@ -39,6 +44,8 @@ export async function reconcileVotes(proposal: VotingEventProposeProposal): Prom
       console.log("reconcileVotes: already reconciled voter: " + vote.voter + " amount: " + vote.amount);
     }
   }
+  console.log("reconcileVotes: updated: " + counter1);
+  console.log("reconcileVotes: skipped: " + counter2);
   //if (voteEvent.source === 'bitcoin') {
   //   const result = await determineTotalAverageUstx(voteEvent.voter)
   //}
@@ -112,11 +119,13 @@ export async function reconcileVoteViaStacks(proposal: VotingEventProposeProposa
     changes.poxAddr = (stackerDel.poxAddr && stackerDel.poxAddr.version) ? stackerDel.poxAddr : undefined
   }
   */
-  if (balanceObj.total > 0) {
+  if (balanceObj?.total > 0) {
     vote = (await updateVote(vote, changes)) as unknown as VoteEvent;
     console.log("reconcileVote: updated stacks vote: amount: " + vote.amount + " voter: " + vote.voter);
+    return true;
   } else {
-    console.log("reconcileVote: NOT UPDATING WITH ZERO TOTAL: amount: " + vote.amount + " voter: " + vote.voter);
+    return false;
+    //console.log("reconcileVote: NOT UPDATING WITH ZERO TOTAL: amount: " + vote.amount + " voter: " + vote.voter);
   }
 }
 
@@ -224,13 +233,35 @@ export async function saveStackerStacksTxs(proposal: VotingEventProposeProposal)
 
   try {
     do {
+      const newEvents = await getStacksTransactionsByAddress(offset, proposal.stackerData.stacksAddressNo);
+      events = newEvents || { results: [] }; // ensure fallback
+      console.log("stacks address [no]: " + proposal.stackerData.stacksAddressNo);
+      if (events?.results?.length > 0) {
+        console.log("no stacks events: " + (events?.results?.length || 0));
+        for (const obj of events.results) {
+          if (checkHeights(obj.tx.burn_block_height, proposal.proposalData.burnStartHeight, proposal.proposalData.burnEndHeight)) {
+            if (obj.tx) stackerTxsNo.push(obj.tx);
+          } else {
+            console.log("getStacksTransactionsByAddress: Out of bounds no tx: " + obj.tx.tx_id);
+          }
+        }
+      }
+      offset += limit;
+    } while (events?.results?.length > 0);
+  } catch (err: any) {
+    console.log("saveStackerBitcoinTxs: getStacksTransactionsByAddress: " + err.message);
+  }
+
+  offset = 0;
+  try {
+    do {
       const newEvents = await getStacksTransactionsByAddress(offset, proposal.stackerData.stacksAddressYes);
       events = newEvents || { results: [] }; // ensure fallback
       console.log("stacks address [yes]: " + proposal.stackerData.stacksAddressYes);
       if (events?.results?.length > 0) {
         for (const obj of events.results) {
           if (checkHeights(obj.tx.burn_block_height, proposal.proposalData.burnStartHeight, proposal.proposalData.burnEndHeight)) {
-            stackerTxsYes.push(obj.tx);
+            if (obj.tx) stackerTxsYes.push(obj.tx);
           } else {
             console.log("getStacksTransactionsByAddress: Out of bounds yes tx: " + obj.tx.tx_id);
           }
@@ -245,42 +276,20 @@ export async function saveStackerStacksTxs(proposal: VotingEventProposeProposal)
 
   console.log("saveStackerStacksTxs: processing " + (stackerTxsYes?.length || 0) + " yes stacks txs");
 
-  offset = 0;
-  try {
-    do {
-      const newEvents = await getStacksTransactionsByAddress(offset, proposal.stackerData.stacksAddressNo);
-      events = newEvents || { results: [] }; // ensure fallback
-      console.log("stacks address [no]: " + proposal.stackerData.stacksAddressNo);
-      if (events?.results?.length > 0) {
-        console.log("no stacks events: " + (events?.results?.length || 0));
-        for (const obj of events.results) {
-          if (checkHeights(obj.tx.burn_block_height, proposal.proposalData.burnStartHeight, proposal.proposalData.burnEndHeight)) {
-            stackerTxsNo.push(obj.tx);
-          } else {
-            console.log("getStacksTransactionsByAddress: Out of bounds no tx: " + obj.tx.tx_id);
-          }
-        }
-      }
-      offset += limit;
-    } while (events?.results?.length > 0);
-  } catch (err: any) {
-    console.log("saveStackerBitcoinTxs: getStacksTransactionsByAddress: " + err.message);
-  }
-
   console.log("saveStackerStacksTxs: processing " + stackerTxsNo?.length + " no stacks txs");
-
-  try {
-    console.log("number of yes stacks txs: " + stackerTxsYes?.length || 0);
-    await convertStacksTxsToVotes(proposal, stackerTxsYes, true);
-  } catch (err: any) {
-    console.log("saveStackerBitcoinTxs: stackerTxsYes: " + err.message);
-  }
 
   try {
     console.log("number of no stacks txs: " + stackerTxsNo?.length || 0);
     await convertStacksTxsToVotes(proposal, stackerTxsNo, false);
   } catch (err: any) {
-    console.log("saveStackerBitcoinTxs: stackerTxsNo: " + err.message);
+    console.log("saveStackerBitcoinTxs: stackerTxsNo: ", err);
+  }
+
+  try {
+    console.log("number of yes stacks txs: " + stackerTxsYes?.length || 0);
+    await convertStacksTxsToVotes(proposal, stackerTxsYes, true);
+  } catch (err: any) {
+    console.log("saveStackerBitcoinTxs: stackerTxsYes: ", err);
   }
 
   return { stackerTxsYes, stackerTxsNo };
@@ -347,6 +356,9 @@ async function getStacksTransactionsByAddress(offset: number, principle: string)
 async function convertStacksTxsToVotes(proposal: VotingEventProposeProposal, txs: Array<any>, vfor: boolean): Promise<Array<VoteEvent>> {
   const votes: Array<VoteEvent> = [];
   console.log("convertStacksTxsToVotes: transactions: " + vfor + " : " + txs?.length || 0);
+  let counter1 = 0;
+  let counter2 = 0;
+  let counter3 = 0;
   for (const v of txs) {
     await delay(500);
 
@@ -367,15 +379,21 @@ async function convertStacksTxsToVotes(proposal: VotingEventProposeProposal, txs
       };
       try {
         await saveVote(potVote);
-        console.log("convertStacksTxsToVotes: saved vote from voter:" + potVote.voter);
+        counter1++;
+        //console.log("convertStacksTxsToVotes: saved vote from voter:" + potVote.voter);
         votes.push(potVote);
       } catch (err: any) {
-        console.log("convertStacksTxsToVotes: ignored subsequent vote by:" + potVote.voter);
+        counter2++;
+        //console.log("convertStacksTxsToVotes: ignored subsequent vote by:" + potVote.voter);
       }
     } else {
-      console.log("convertStacksTxsToVotes: already recorded vote by:" + v.voter);
+      counter3++;
+      //console.log("convertStacksTxsToVotes: already counted:" + existingVote.amount + " : " + existingVote.voter);
     }
   }
+  console.log("convertStacksTxsToVotes: saved votes: " + vfor + " : " + counter1);
+  console.log("convertStacksTxsToVotes: ignored subsequent votes: " + counter2);
+  console.log("convertStacksTxsToVotes: already counted: " + counter3);
   return votes;
 }
 
