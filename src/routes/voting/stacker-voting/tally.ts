@@ -386,7 +386,7 @@ async function convertStacksTxsToVotes(proposal: VotingEventProposeProposal, txs
         votes.push(potVote);
       } catch (err: any) {
         counter2++;
-        console.log("convertStacksTxsToVotes: ignored subsequent vote by:," + potVote.voter + "," + potVote.submitTxId);
+        console.log("subsequent vote," + potVote.voter + "," + potVote.for + "," + potVote.submitTxId, err);
       }
     } else {
       counter3++;
