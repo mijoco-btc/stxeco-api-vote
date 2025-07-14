@@ -1,4 +1,4 @@
-import { fetchAddressTransactions, getHashBytesFromAddress } from "@mijoco/btc_helpers/dist/index";
+import { getHashBytesFromAddress } from "@mijoco/btc_helpers/dist/index";
 import { Delegation, getBalanceAtHeight, StackerInfo, type VoteEvent, type VotingEventProposeProposal } from "@mijoco/stx_helpers/dist/index";
 import { getBurnHeightToRewardCycle, getCheckDelegation, getStackerInfoFromContract } from "@mijoco/stx_helpers/dist/pox/pox";
 import { getConfig } from "../../../lib/config";
@@ -22,7 +22,7 @@ export async function reconcileVotes(proposal: VotingEventProposeProposal): Prom
 
   for (const vote of votes) {
     if (vote.amount === 0) {
-      await delay(1000);
+      await delay(2000);
       if (vote.source === "stacks") {
         try {
           const res = await reconcileVoteViaStacks(proposal, vote);
@@ -186,6 +186,7 @@ export async function saveStackerBitcoinTxs(proposal: VotingEventProposeProposal
 
   if (allYesResults) {
     for (const tx of allYesResults) {
+      await delay(2000);
       if (checkHeights(tx.status.block_height, proposal.stackerData.heights.burnStart, proposal.stackerData.heights.burnEnd)) {
         bitcoinTxsYes.push(tx);
       } else {
@@ -197,6 +198,7 @@ export async function saveStackerBitcoinTxs(proposal: VotingEventProposeProposal
   try {
     if (allNoResults) {
       for (const tx of allNoResults) {
+        await delay(2000);
         if (checkHeights(tx.status.block_height, proposal.stackerData.heights.burnStart, proposal.stackerData.heights.burnEnd)) {
           bitcoinTxsNo.push(tx);
         } else {
@@ -532,4 +534,36 @@ async function countEntries(cycle: number, stackerInfo: StackerInfo) {
     }
   }
   return { entries, totalStacked };
+}
+
+export async function fetchAddressTransactions(mempoolUrl: string, address: string, txId?: string) {
+  const urlBase = mempoolUrl + "/address/" + address + "/txs";
+  let url = urlBase;
+  if (txId) {
+    url = urlBase + "/chain/" + txId;
+  }
+  console.log("fetchAddressTransactions: url: " + url);
+  let response: any;
+  let allResults: Array<any> = [];
+  let results: Array<any>;
+  let fetchMore = true;
+  do {
+    try {
+      await delay(2000);
+      response = await fetch(url);
+      results = await response.json();
+      if (results && results.length > 0) {
+        console.log("fetchAddressTransactions: " + results.length + " found at " + results[results.length - 1].status.block_height);
+        url = urlBase + "/chain/" + results[results.length - 1].txid;
+        allResults = allResults.concat(results);
+      } else {
+        fetchMore = false;
+      }
+    } catch (err: any) {
+      console.error("fetchAddressTransactions" + err.message);
+      fetchMore = false;
+    }
+  } while (fetchMore);
+  console.log("fetchAddressTransactions: total of " + allResults.length + " found at " + address);
+  return allResults;
 }
