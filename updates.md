@@ -73,3 +73,5 @@ where dao contract is
 
 - SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.bitcoin-dao (nakamoto)
 - SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.ecosystem-dao (2.1 upgrade)
+
+db.stackerVotes.aggregate([{$match: {proposalContractId: "SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.sip031-five-year-stacks-growth-plan"}},{$group: {_id: "$voter",count: { $sum: 1 }}},{$match: {count: { $gt: 1 }}},{$sort: { count: -1 }}]);

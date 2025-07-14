@@ -1,9 +1,10 @@
 import { getHashBytesFromAddress } from "@mijoco/btc_helpers/dist/index";
-import { Delegation, getBalanceAtHeight, StackerInfo, type VoteEvent, type VotingEventProposeProposal } from "@mijoco/stx_helpers/dist/index";
+import { Delegation, getBalanceAtHeight, getTransaction, StackerInfo, type VoteEvent, type VotingEventProposeProposal } from "@mijoco/stx_helpers/dist/index";
 import { getBurnHeightToRewardCycle, getCheckDelegation, getStackerInfoFromContract } from "@mijoco/stx_helpers/dist/pox/pox";
 import { getConfig } from "../../../lib/config";
-import { findStackerVoteByProposalAndVoter, findStackerVotesByProposal, saveVote, updateVote } from "./vote_count_helper";
+import { findStackerVoteByProposalAndVoter, findStackerVotesByProposal, saveVote, updateVote, updateVoteId } from "./vote_count_helper";
 import { findPoxEntriesByAddressAndCycle, findPoxEntryByCycleAndIndex } from "../pox-entries/pox_helper";
+import { stackerVotes } from "../../../lib/data/db_models";
 
 const limit = 20;
 const PRE_NAKAMOTO_STACKS_TIP_HEIGHT = 850850;
@@ -283,6 +284,7 @@ export async function saveStackerStacksTxs(proposal: VotingEventProposeProposal)
   try {
     console.log("number of no stacks txs: " + stackerTxsNo?.length || 0);
     await convertStacksTxsToVotes(proposal, stackerTxsNo, false);
+    await fetchNonces(proposal, stackerTxsNo, true);
   } catch (err: any) {
     console.log("saveStackerBitcoinTxs: stackerTxsNo: ", err);
   }
@@ -290,6 +292,7 @@ export async function saveStackerStacksTxs(proposal: VotingEventProposeProposal)
   try {
     console.log("number of yes stacks txs: " + stackerTxsYes?.length || 0);
     await convertStacksTxsToVotes(proposal, stackerTxsYes, true);
+    await fetchNonces(proposal, stackerTxsYes, true);
   } catch (err: any) {
     console.log("saveStackerBitcoinTxs: stackerTxsYes: ", err);
   }
@@ -396,6 +399,60 @@ async function convertStacksTxsToVotes(proposal: VotingEventProposeProposal, txs
   console.log("convertStacksTxsToVotes: saved votes: " + vfor + " : " + counter1);
   console.log("convertStacksTxsToVotes: ignored subsequent votes: " + counter2);
   console.log("convertStacksTxsToVotes: already counted: " + counter3);
+  return votes;
+}
+
+async function fetchNonces(proposal: VotingEventProposeProposal, txs: Array<any>, vfor: boolean) {
+  console.log("fetchNonces: transactions: " + vfor + " : " + txs?.length || 0);
+  let counter1 = 0;
+  let counter2 = 0;
+  const dupes = await findDuplicateVoters(proposal.proposal);
+  for (const dupe of dupes) {
+    await delay(500);
+    const tx = await getTransaction(getConfig().stacksApi, dupe.submitTxId);
+    const potVote: any = {
+      submitTxIdProxy: tx.nonce,
+      delegateTo: true,
+    };
+    try {
+      await updateVoteId(dupe._id, potVote);
+      counter1++;
+      //console.log("fetchNonces: saved vote from voter:" + potVote.voter);
+    } catch (err: any) {
+      counter2++;
+      console.log("subsequent vote," + potVote.voter + "," + potVote.for + "," + potVote.submitTxId, err);
+    }
+  }
+  console.log("fetchNonces: nonce: " + vfor + " : " + counter1);
+  console.log("fetchNonces: nonce: " + counter2);
+  return;
+}
+
+async function markDuplicates(proposal: VotingEventProposeProposal, txs: Array<any>, vfor: boolean): Promise<Array<VoteEvent>> {
+  const votes: Array<VoteEvent> = [];
+  console.log("convertStacksTxsToVotes: transactions: " + vfor + " : " + txs?.length || 0);
+  let counter1 = 0;
+  let counter2 = 0;
+  for (const v of txs) {
+    await delay(500);
+    const existingVote = await findStackerVoteByProposalAndVoter(proposal.proposal, v.sender_address);
+    const tx = await getTransaction(getConfig().stacksApi, existingVote.submitTxId);
+    const potVote: any = {
+      submitTxIdProxy: tx.nonce,
+      delegateTo: true,
+    };
+    try {
+      await updateVote(existingVote, potVote);
+      counter1++;
+      //console.log("convertStacksTxsToVotes: saved vote from voter:" + potVote.voter);
+      votes.push(potVote);
+    } catch (err: any) {
+      counter2++;
+      console.log("subsequent vote," + potVote.voter + "," + potVote.for + "," + potVote.submitTxId, err);
+    }
+  }
+  console.log("convertStacksTxsToVotes: saved votes: " + vfor + " : " + counter1);
+  console.log("convertStacksTxsToVotes: ignored subsequent votes: " + counter2);
   return votes;
 }
 
@@ -566,4 +623,35 @@ export async function fetchAddressTransactions(mempoolUrl: string, address: stri
   } while (fetchMore);
   console.log("fetchAddressTransactions: total of " + allResults.length + " found at " + address);
   return allResults;
+}
+
+export async function findDuplicateVoters(proposalContractId: string): Promise<{ _id: string; voter: string; submitTxId: string; count: number }[]> {
+  const pipeline = [
+    {
+      $match: { proposalContractId },
+    },
+    {
+      $group: {
+        _id: "$_id",
+        voter: "$voter",
+        count: { $sum: 1 },
+      },
+    },
+    {
+      $match: { count: { $gt: 1 } },
+    },
+    {
+      $sort: { count: -1 },
+    },
+  ];
+
+  const results = await stackerVotes.aggregate(pipeline).toArray();
+
+  // Format result for clarity
+  return results.map(({ _id, voter, submitTxId, count }) => ({
+    _id: _id,
+    submitTxId: submitTxId,
+    voter: voter,
+    count,
+  }));
 }
