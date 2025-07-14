@@ -22,7 +22,7 @@ export async function reconcileVotes(proposal: VotingEventProposeProposal): Prom
 
   for (const vote of votes) {
     if (vote.amount === 0) {
-      await delay(400);
+      await delay(1000);
       if (vote.source === "stacks") {
         try {
           const res = await reconcileVoteViaStacks(proposal, vote);
@@ -41,7 +41,7 @@ export async function reconcileVotes(proposal: VotingEventProposeProposal): Prom
         console.log("reconcileVotes: unknown source", vote);
       }
     } else {
-      console.log("reconcileVotes: already reconciled voter: " + vote.voter + " amount: " + vote.amount);
+      //console.log("reconcileVotes: already reconciled voter: " + vote.voter + " amount: " + vote.amount);
     }
   }
   console.log("reconcileVotes: updated: " + counter1);
