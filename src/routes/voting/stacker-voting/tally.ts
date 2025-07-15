@@ -236,6 +236,7 @@ export async function saveStackerStacksTxs(proposal: VotingEventProposeProposal)
 
   try {
     do {
+      await delay(2000);
       const newEvents = await getStacksTransactionsByAddress(offset, proposal.stackerData.stacksAddressNo);
       events = newEvents || { results: [] }; // ensure fallback
       console.log("stacks address [no]: " + proposal.stackerData.stacksAddressNo);
@@ -258,6 +259,7 @@ export async function saveStackerStacksTxs(proposal: VotingEventProposeProposal)
   offset = 0;
   try {
     do {
+      await delay(2000);
       const newEvents = await getStacksTransactionsByAddress(offset, proposal.stackerData.stacksAddressYes);
       events = newEvents || { results: [] }; // ensure fallback
       console.log("stacks address [yes]: " + proposal.stackerData.stacksAddressYes);
