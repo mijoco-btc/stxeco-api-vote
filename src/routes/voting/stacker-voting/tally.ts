@@ -17,11 +17,18 @@ export async function reconcileVotes(proposal: VotingEventProposeProposal): Prom
   const cycle1CV = proposal.stackerData ? await getBurnHeightToRewardCycle(getConfig().stacksApi, getConfig().poxContractId!, burnStartHeight + 200) : undefined;
   const cycle1 = Number(cycle1CV.cycle.value);
 
-  const votes = await findStackerVotesByProposal(proposal.proposal);
+  //const votes = await findStackerVotesByProposal(proposal.proposal);
+  const voteGroups = await findDuplicateVoters(proposal.proposal);
+  //await resolveNonce(proposal.proposal);
   let counter1 = 0;
   let counter2 = 0;
 
-  for (const vote of votes) {
+  for (const voteGroup of voteGroups) {
+    const votes = voteGroup.votes;
+    let vote;
+    if (votes.length === 1) vote = votes[0];
+    else vote = votes.reduce((min: { submitTxIdProxy: number }, vote: { submitTxIdProxy: number }) => (vote.submitTxIdProxy < min.submitTxIdProxy ? vote : min));
+
     if (vote.amount === 0) {
       await delay(2000);
       if (vote.source === "stacks") {
@@ -391,7 +398,7 @@ async function convertStacksTxsToVotes(proposal: VotingEventProposeProposal, txs
         votes.push(potVote);
       } catch (err: any) {
         counter2++;
-        console.log("subsequent vote," + potVote.voter + "," + potVote.for + "," + potVote.submitTxId, err);
+        console.log("subsequent vote," + potVote.voter + "," + potVote.for + "," + potVote.submitTxId + "," + err.message);
       }
     } else {
       counter3++;
@@ -404,58 +411,38 @@ async function convertStacksTxsToVotes(proposal: VotingEventProposeProposal, txs
   return votes;
 }
 
-async function fetchNonces(proposal: VotingEventProposeProposal, txs: Array<any>, vfor: boolean) {
-  console.log("fetchNonces: transactions: " + vfor + " : " + txs?.length || 0);
+export async function resolveNonce(proposal: string) {
   let counter1 = 0;
   let counter2 = 0;
-  const dupes = await findDuplicateVoters(proposal.proposal);
-  for (const dupe of dupes) {
+  const voteGroups = await findDuplicateVoters(proposal);
+  //console.log("voteGroups", voteGroups);
+  for (const voteGroup of voteGroups) {
     await delay(500);
-    const tx = await getTransaction(getConfig().stacksApi, dupe.submitTxId);
-    const potVote: any = {
-      submitTxIdProxy: tx.nonce,
-      delegateTo: true,
-    };
-    try {
-      await updateVoteId(dupe._id, potVote);
-      counter1++;
-      //console.log("fetchNonces: saved vote from voter:" + potVote.voter);
-    } catch (err: any) {
-      counter2++;
-      console.log("subsequent vote," + potVote.voter + "," + potVote.for + "," + potVote.submitTxId, err);
+    const votes = voteGroup.votes;
+    if (!voteGroup.submitTxIdProxy) {
+      console.log("fetchNonces: saved vote from voter:" + votes.length);
+      if (votes.length > 1) {
+        for (const vote of votes) {
+          await delay(500);
+          const tx = await getTransaction(getConfig().stacksApi, vote.submitTxId);
+          const potVote: any = {
+            submitTxIdProxy: tx.nonce,
+          };
+          try {
+            await updateVoteId(vote._id, potVote);
+            counter1++;
+            console.log("fetchNonces: saved vote from voter:" + potVote.voter + " nonce: " + potVote.submitTxIdProxy);
+          } catch (err: any) {
+            counter2++;
+            console.log("subsequent vote," + potVote.voter + "," + potVote.for + "," + potVote.submitTxId, err);
+          }
+        }
+      }
     }
   }
-  console.log("fetchNonces: nonce: " + vfor + " : " + counter1);
-  console.log("fetchNonces: nonce: " + counter2);
+  console.log("fetchNonces: updated nonce: " + counter1);
+  console.log("fetchNonces: errored nonce: " + counter2);
   return;
-}
-
-async function markDuplicates(proposal: VotingEventProposeProposal, txs: Array<any>, vfor: boolean): Promise<Array<VoteEvent>> {
-  const votes: Array<VoteEvent> = [];
-  console.log("convertStacksTxsToVotes: transactions: " + vfor + " : " + txs?.length || 0);
-  let counter1 = 0;
-  let counter2 = 0;
-  for (const v of txs) {
-    await delay(500);
-    const existingVote = await findStackerVoteByProposalAndVoter(proposal.proposal, v.sender_address);
-    const tx = await getTransaction(getConfig().stacksApi, existingVote.submitTxId);
-    const potVote: any = {
-      submitTxIdProxy: tx.nonce,
-      delegateTo: true,
-    };
-    try {
-      await updateVote(existingVote, potVote);
-      counter1++;
-      //console.log("convertStacksTxsToVotes: saved vote from voter:" + potVote.voter);
-      votes.push(potVote);
-    } catch (err: any) {
-      counter2++;
-      console.log("subsequent vote," + potVote.voter + "," + potVote.for + "," + potVote.submitTxId, err);
-    }
-  }
-  console.log("convertStacksTxsToVotes: saved votes: " + vfor + " : " + counter1);
-  console.log("convertStacksTxsToVotes: ignored subsequent votes: " + counter2);
-  return votes;
 }
 
 async function convertBitcoinTxsToVotes(proposal: VotingEventProposeProposal, txs: Array<any>, vfor: boolean): Promise<Array<VoteEvent>> {
@@ -627,33 +614,8 @@ export async function fetchAddressTransactions(mempoolUrl: string, address: stri
   return allResults;
 }
 
-export async function findDuplicateVoters(proposalContractId: string): Promise<{ _id: string; voter: string; submitTxId: string; count: number }[]> {
-  const pipeline = [
-    {
-      $match: { proposalContractId },
-    },
-    {
-      $group: {
-        _id: "$_id",
-        voter: "$voter",
-        count: { $sum: 1 },
-      },
-    },
-    {
-      $match: { count: { $gt: 1 } },
-    },
-    {
-      $sort: { count: -1 },
-    },
-  ];
+export async function findDuplicateVoters(proposalContractId: string): Promise<any> {
+  const voteGroups = stackerVotes.aggregate([{ $match: { proposalContractId: proposalContractId } }, { $group: { _id: "$voter", count: { $sum: 1 }, votes: { $push: "$$ROOT" } } }, { $sort: { count: -1 } }]).toArray();
 
-  const results = await stackerVotes.aggregate(pipeline).toArray();
-
-  // Format result for clarity
-  return results.map(({ _id, voter, submitTxId, count }) => ({
-    _id: _id,
-    submitTxId: submitTxId,
-    voter: voter,
-    count,
-  }));
+  return voteGroups;
 }

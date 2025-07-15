@@ -13,7 +13,8 @@ export function printConfig() {
 }
 
 export function setConfigOnStart() {
-  const network = process.env.NODE_ENV;
+  let network = process.env.NODE_ENV;
+  network = "mainnet";
 
   CONFIG.host = process.env[network + "_host"] || "";
   CONFIG.port = Number(process.env[network + "_port"]) || 6060;

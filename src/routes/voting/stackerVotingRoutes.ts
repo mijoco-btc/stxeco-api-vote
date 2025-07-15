@@ -4,7 +4,7 @@ import { fetchProposeEvent } from "../../lib/events/event_helper_voting_contract
 import { VoteEvent, VotingEventProposeProposal } from "@mijoco/stx_helpers/dist/index";
 import { getSummary, getSummaryNodao } from "../../lib/events/proposal";
 import { findStackerVotesByProposalAndSource } from "./stacker-voting/vote_count_helper";
-import { reconcileVotes, saveStackerBitcoinTxs, saveStackerStacksTxs } from "./stacker-voting/tally";
+import { reconcileVotes, resolveNonce, saveStackerBitcoinTxs, saveStackerStacksTxs } from "./stacker-voting/tally";
 
 const router = express.Router();
 
@@ -33,6 +33,19 @@ router.get("/reconcile-stacker-votes/:proposal", async (req, res, next) => {
   try {
     const proposal: VotingEventProposeProposal = await fetchProposeEvent(req.params.proposal);
     reconcileVotes(proposal);
+    return res.send({
+      message: "Reconciling the voting (into db.stackerVotes) for " + req.params.proposal,
+    });
+  } catch (error) {
+    console.log("Error in routes: ", error);
+    next("An error occurred fetching sbtc data.");
+  }
+});
+
+router.get("/resolve-nonce/:proposal", async (req, res, next) => {
+  try {
+    const proposal: VotingEventProposeProposal = await fetchProposeEvent(req.params.proposal);
+    resolveNonce(proposal.proposal);
     return res.send({
       message: "Reconciling the voting (into db.stackerVotes) for " + req.params.proposal,
     });

@@ -59,7 +59,7 @@ export async function connect() {
   await votingContractEventCollection.createIndex({ votingContract: 1, event_index: 1, txId: 1 }, { unique: true });
 
   stackerVotes = database.collection("stackerVotes");
-  // await stackerVotes.createIndex({submitTxId: 1}, { unique: true })
+  await stackerVotes.createIndex({ submitTxId: 1 }, { unique: true });
   // await stackerVotes.createIndex({proposalContractId: 1, voter: 1}, { unique: true })
 
   //daoMongoConfig = database.collection('daoMongoConfig');

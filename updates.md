@@ -75,3 +75,9 @@ where dao contract is
 - SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.ecosystem-dao (2.1 upgrade)
 
 db.stackerVotes.aggregate([{$match: {proposalContractId: "SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.sip031-five-year-stacks-growth-plan"}},{$group: {_id: "$voter",count: { $sum: 1 }}},{$match: {count: { $gt: 1 }}},{$sort: { count: -1 }}]);
+
+db.stackerVotes.aggregate([{$match:{proposalContractId:"SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.sip031-five-year-stacks-growth-plan"}},{$group:{\_id:"$voter",count:{$sum:1}}},{$match:{count:{$gt:1}}},{$group:{_id:null,totalDuplicateVotes:{$sum:{$subtract:["$count",1]}}}}]);
+
+# get all the votes but with count
+
+db.stackerVotes.aggregate([{$match:{proposalContractId:"SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.sip031-five-year-stacks-growth-plan"}},{$group:{_id:"$voter",count:{$sum:1},votes:{$push:"$$ROOT"}}},{$sort:{count:-1}}]);
