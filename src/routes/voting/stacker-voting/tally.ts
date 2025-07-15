@@ -284,7 +284,7 @@ export async function saveStackerStacksTxs(proposal: VotingEventProposeProposal)
   try {
     console.log("number of no stacks txs: " + stackerTxsNo?.length || 0);
     await convertStacksTxsToVotes(proposal, stackerTxsNo, false);
-    await fetchNonces(proposal, stackerTxsNo, true);
+    //await fetchNonces(proposal, stackerTxsNo, true);
   } catch (err: any) {
     console.log("saveStackerBitcoinTxs: stackerTxsNo: ", err);
   }
@@ -292,7 +292,7 @@ export async function saveStackerStacksTxs(proposal: VotingEventProposeProposal)
   try {
     console.log("number of yes stacks txs: " + stackerTxsYes?.length || 0);
     await convertStacksTxsToVotes(proposal, stackerTxsYes, true);
-    await fetchNonces(proposal, stackerTxsYes, true);
+    //await fetchNonces(proposal, stackerTxsYes, true);
   } catch (err: any) {
     console.log("saveStackerBitcoinTxs: stackerTxsYes: ", err);
   }
