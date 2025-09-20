@@ -81,3 +81,5 @@ db.stackerVotes.aggregate([{$match:{proposalContractId:"SP3JP0N1ZXGASRJ0F7QAHWFP
 # get all the votes but with count
 
 db.stackerVotes.aggregate([{$match:{proposalContractId:"SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.sip031-five-year-stacks-growth-plan"}},{$group:{_id:"$voter",count:{$sum:1},votes:{$push:"$$ROOT"}}},{$sort:{count:-1}}]);
+
+db.stackerVotes.updateMany({proposalContractId:"SP3JP0N1ZXGASRJ0F7QAHWFPGTVK9T2XNXDB908Z.sip031-five-year-stacks-growth-plan"},{$set:{amount:0}});
