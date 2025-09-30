@@ -80,8 +80,8 @@ async function connectToMongoCloud() {
 
   const wss = new WebSocketServer({ server });
   //initPoolStackerEvents.start();
-  initScanDaoEventsJob.start();
-  initScanVotingEventsJob.start();
+  // initScanDaoEventsJob.start();
+  // initScanVotingEventsJob.start();
 
   wss.on("connection", function connection(ws: any) {
     ws.on("message", function incoming(message: any) {
